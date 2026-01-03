@@ -1,0 +1,34 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #ffffff;
+  --foreground: #002233;
+
+  /* Brand Colors */
+  --brand-50: #E6F4F9;
+  --brand-100: #CCE9F3;
+  --brand-500: #0279AF;
+  --brand-600: #0268A0;
+  --brand-700: #015E8C;
+  --brand-900: #002233;
+
+  /* Accent Colors */
+  --accent-50: #F0FDF4;
+  --accent-400: #AFFC40;
+  --accent-500: #8FD932;
+  --accent-600: #65A30D;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
