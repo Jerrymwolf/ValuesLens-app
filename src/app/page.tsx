@@ -102,7 +102,7 @@ export default function Home() {
       <footer className="flex-shrink-0 py-4 border-t border-gray-100 bg-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 text-center">
           <p className="text-xs sm:text-sm text-gray-400">
-            by CultureWright Consulting
+            brought to you by Jeremiah Wolf
           </p>
         </div>
       </footer>
