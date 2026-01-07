@@ -39,42 +39,32 @@ export default function SharePage() {
   const [error, setError] = useState<string | null>(null);
   const [showDemographics, setShowDemographics] = useState(false);
 
-  // Hydration guard
-  if (!isHydrated) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-pulse text-gray-400">Loading...</div>
-      </div>
-    );
-  }
+  // ALL useMemo hooks FIRST (before hydration guard)
+  const valuesWithDefinitions: ValueWithDefinition[] = useMemo(() => {
+    return rankedValues.slice(0, 3).map((id) => {
+      const value = VALUES_BY_ID[id];
+      const def = definitions[id];
+      const isCustom = id.startsWith('custom_');
 
-  // Redirect if no session
-  useEffect(() => {
-    if (!sessionId) {
-      router.replace('/');
-      return;
-    }
-    if (rankedValues.length === 0) {
-      router.replace('/assess/story');
-    }
-  }, [sessionId, rankedValues.length, router]);
+      // Handle custom values
+      const valueName = isCustom && customValue?.id === id
+        ? customValue.name
+        : value?.name || 'Value';
+      const valueTagline = isCustom
+        ? 'A value that matters deeply to you'
+        : value?.cardText || '';
 
-  // Create profile on mount if not already created
-  useEffect(() => {
-    if (shareSlug || !sessionId || rankedValues.length === 0) return;
+      return {
+        id,
+        name: valueName,
+        tagline: def?.tagline || valueTagline || getFallbackTagline(valueName),
+        definition: def?.definition,
+        commitment: goals[id],
+      };
+    }).filter((v) => v.name);
+  }, [rankedValues, definitions, goals, customValue]);
 
-    createProfile();
-  }, [sessionId, rankedValues, shareSlug]);
-
-  // Show demographics modal after profile creation (if not already submitted)
-  useEffect(() => {
-    if (shareSlug && !demographics) {
-      // Small delay so user sees their card first
-      const timer = setTimeout(() => setShowDemographics(true), 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [shareSlug, demographics]);
-
+  // createProfile function (defined before useEffects that reference it)
   const createProfile = async () => {
     setIsCreatingProfile(true);
     setError(null);
@@ -106,30 +96,42 @@ export default function SharePage() {
     }
   };
 
-  // Convert to ValueWithDefinition format for 2026 card
-  const valuesWithDefinitions: ValueWithDefinition[] = useMemo(() => {
-    return rankedValues.slice(0, 3).map((id) => {
-      const value = VALUES_BY_ID[id];
-      const def = definitions[id];
-      const isCustom = id.startsWith('custom_');
+  // ALL useEffect hooks NEXT (with isHydrated guard inside)
+  useEffect(() => {
+    if (!isHydrated) return;
+    if (!sessionId) {
+      router.replace('/');
+      return;
+    }
+    if (rankedValues.length === 0) {
+      router.replace('/assess/story');
+    }
+  }, [isHydrated, sessionId, rankedValues.length, router]);
 
-      // Handle custom values
-      const valueName = isCustom && customValue?.id === id
-        ? customValue.name
-        : value?.name || 'Value';
-      const valueTagline = isCustom
-        ? 'A value that matters deeply to you'
-        : value?.cardText || '';
+  useEffect(() => {
+    if (!isHydrated) return;
+    if (shareSlug || !sessionId || rankedValues.length === 0) return;
+    createProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isHydrated, sessionId, rankedValues, shareSlug]);
 
-      return {
-        id,
-        name: valueName,
-        tagline: def?.tagline || valueTagline || getFallbackTagline(valueName),
-        definition: def?.definition,
-        commitment: goals[id],
-      };
-    }).filter((v) => v.name);
-  }, [rankedValues, definitions, goals, customValue]);
+  useEffect(() => {
+    if (!isHydrated) return;
+    if (shareSlug && !demographics) {
+      // Small delay so user sees their card first
+      const timer = setTimeout(() => setShowDemographics(true), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [isHydrated, shareSlug, demographics]);
+
+  // Hydration guard - AFTER all hooks
+  if (!isHydrated) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="animate-pulse text-gray-400">Loading...</div>
+      </div>
+    );
+  }
 
   const shareUrl = shareSlug
     ? `${typeof window !== 'undefined' ? window.location.origin : ''}/p/${shareSlug}`

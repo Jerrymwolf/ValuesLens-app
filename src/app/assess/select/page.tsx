@@ -24,16 +24,7 @@ export default function SelectPage() {
   const [phase, setPhase] = useState<Phase>('select');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
-  // Hydration guard
-  if (!isHydrated) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-pulse text-gray-400">Loading...</div>
-      </div>
-    );
-  }
-
-  // Get all "Very Important" values
+  // ALL useMemo hooks FIRST (before hydration guard)
   const veryImportantValues = useMemo(() => {
     return sortedValues.very.map((id) => {
       if (id.startsWith('custom_') && customValue?.id === id) {
@@ -47,8 +38,9 @@ export default function SelectPage() {
     }).filter(Boolean);
   }, [sortedValues.very, customValue]);
 
-  // Redirect if no session or not enough values
+  // ALL useEffect hooks NEXT (with isHydrated guard inside)
   useEffect(() => {
+    if (!isHydrated) return;
     if (!sessionId) {
       router.replace('/');
       return;
@@ -57,15 +49,24 @@ export default function SelectPage() {
       router.replace('/assess/sort');
       return;
     }
-  }, [sessionId, sortedValues.very.length, router]);
+  }, [isHydrated, sessionId, sortedValues.very.length, router]);
 
-  // Auto-advance if exactly 5 "Very Important" values
   useEffect(() => {
+    if (!isHydrated) return;
     if (veryImportantValues.length === 5 && phase === 'select' && selectedIds.length === 0) {
       setSelectedIds(sortedValues.very.slice(0, 5));
       setPhase('rank');
     }
-  }, [veryImportantValues.length, sortedValues.very, phase, selectedIds.length]);
+  }, [isHydrated, veryImportantValues.length, sortedValues.very, phase, selectedIds.length]);
+
+  // Hydration guard - AFTER all hooks
+  if (!isHydrated) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="animate-pulse text-gray-400">Loading...</div>
+      </div>
+    );
+  }
 
   // Selection handlers
   const handleSelect = (valueId: string) => {

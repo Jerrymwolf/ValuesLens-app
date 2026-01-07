@@ -26,16 +26,7 @@ export default function StoryPage() {
   const [isRecording, setIsRecording] = useState(false);
   const [storyText, setStoryText] = useState(transcript || '');
 
-  // Hydration guard
-  if (!isHydrated) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-pulse text-gray-400">Loading...</div>
-      </div>
-    );
-  }
-
-  // Get top 3 values from ranked values
+  // ALL useMemo hooks FIRST (before hydration guard)
   const top3Values = useMemo(() => {
     return rankedValues.slice(0, 3).map((id) => {
       if (id.startsWith('custom_') && customValue?.id === id) {
@@ -49,8 +40,15 @@ export default function StoryPage() {
     }).filter(Boolean);
   }, [rankedValues, customValue]);
 
-  // Redirect if no session or no ranked values
+  const wordCount = useMemo(() => {
+    return storyText.trim().split(/\s+/).filter(Boolean).length;
+  }, [storyText]);
+
+  const canContinue = wordCount >= MIN_WORDS;
+
+  // ALL useEffect hooks NEXT (with isHydrated guard inside)
   useEffect(() => {
+    if (!isHydrated) return;
     if (!sessionId) {
       router.replace('/');
       return;
@@ -59,16 +57,9 @@ export default function StoryPage() {
       router.replace('/assess/select');
       return;
     }
-  }, [sessionId, rankedValues.length, router]);
+  }, [isHydrated, sessionId, rankedValues.length, router]);
 
-  // Word count
-  const wordCount = useMemo(() => {
-    return storyText.trim().split(/\s+/).filter(Boolean).length;
-  }, [storyText]);
-
-  const canContinue = wordCount >= MIN_WORDS;
-
-  // Voice recording
+  // ALL useCallback hooks
   const startRecording = useCallback(() => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
       alert('Voice input is not supported in your browser. Please use text input.');
@@ -119,6 +110,15 @@ export default function StoryPage() {
       setIsRecording(false);
     }
   }, []);
+
+  // Hydration guard - AFTER all hooks
+  if (!isHydrated) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="animate-pulse text-gray-400">Loading...</div>
+      </div>
+    );
+  }
 
   // Continue to goals
   const handleContinue = () => {

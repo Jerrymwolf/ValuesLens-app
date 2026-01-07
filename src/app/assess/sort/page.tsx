@@ -27,30 +27,13 @@ export default function SortPage() {
 
   const [showCustomValueModal, setShowCustomValueModal] = useState(false);
 
-  // Hydration guard
-  if (!isHydrated) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-pulse text-gray-400">Loading...</div>
-      </div>
-    );
-  }
-
-  // Redirect to home if no session
-  useEffect(() => {
-    if (!sessionId || shuffledValueIds.length === 0) {
-      router.replace('/');
-    }
-  }, [sessionId, shuffledValueIds, router]);
-
-  // Convert IDs to Value objects
+  // ALL useMemo hooks FIRST (before hydration guard)
   const values = useMemo(() => {
     return shuffledValueIds
       .map((id) => VALUES_BY_ID[id])
       .filter(Boolean);
   }, [shuffledValueIds]);
 
-  // Category counts for display
   const categoryCounts = useMemo(() => ({
     very: sortedValues.very.length,
     somewhat: sortedValues.somewhat.length,
@@ -60,13 +43,30 @@ export default function SortPage() {
   // Can skip when 5+ values marked as Very Important
   const canSkip = sortedValues.very.length >= MIN_VERY_IMPORTANT;
 
-  // Check if sorting is complete
+  // ALL useEffect hooks NEXT (with isHydrated guard inside)
   useEffect(() => {
+    if (!isHydrated) return;
+    if (!sessionId || shuffledValueIds.length === 0) {
+      router.replace('/');
+    }
+  }, [isHydrated, sessionId, shuffledValueIds, router]);
+
+  useEffect(() => {
+    if (!isHydrated) return;
     if (currentCardIndex >= values.length && values.length > 0) {
       // All cards sorted, show custom value modal
       setShowCustomValueModal(true);
     }
-  }, [currentCardIndex, values.length]);
+  }, [isHydrated, currentCardIndex, values.length]);
+
+  // Hydration guard - AFTER all hooks
+  if (!isHydrated) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="animate-pulse text-gray-400">Loading...</div>
+      </div>
+    );
+  }
 
   const handleSwipe = (valueId: string, category: SortCategory) => {
     sortValue(valueId, category);

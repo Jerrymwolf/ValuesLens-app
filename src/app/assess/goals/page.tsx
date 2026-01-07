@@ -26,16 +26,7 @@ export default function GoalsPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState('');
 
-  // Hydration guard - prevents React error #185
-  if (!isHydrated) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-pulse text-gray-400">Loading...</div>
-      </div>
-    );
-  }
-
-  // Get top 3 values
+  // ALL useMemo hooks FIRST (before hydration guard)
   const top3Values = useMemo(() => {
     return rankedValues.slice(0, 3).map((id) => {
       if (id.startsWith('custom_') && customValue?.id === id) {
@@ -49,8 +40,16 @@ export default function GoalsPage() {
     }).filter(Boolean);
   }, [rankedValues, customValue]);
 
-  // Redirect if no session or no ranked values
+  const allComplete = useMemo(() => {
+    return top3Values.every((value) => {
+      const w = woop[value.id];
+      return w && w.outcome && w.obstacle && w.plan;
+    });
+  }, [top3Values, woop]);
+
+  // ALL useEffect hooks NEXT (with isHydrated guard inside)
   useEffect(() => {
+    if (!isHydrated) return;
     if (!sessionId) {
       router.replace('/');
       return;
@@ -59,20 +58,21 @@ export default function GoalsPage() {
       router.replace('/assess/story');
       return;
     }
-  }, [sessionId, rankedValues.length, router]);
+  }, [isHydrated, sessionId, rankedValues.length, router]);
 
-  // Check if all 3 WOOP cards are complete
-  const allComplete = useMemo(() => {
-    return top3Values.every((value) => {
-      const w = woop[value.id];
-      return w && w.outcome && w.obstacle && w.plan;
-    });
-  }, [top3Values, woop]);
-
-  // Handle WOOP completion for a value
+  // ALL useCallback hooks
   const handleWoopComplete = useCallback((valueId: string, woopData: { outcome: string; obstacle: string; plan: string }) => {
     setWoop(valueId, woopData);
   }, [setWoop]);
+
+  // Hydration guard - AFTER all hooks
+  if (!isHydrated) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="animate-pulse text-gray-400">Loading...</div>
+      </div>
+    );
+  }
 
   const handleBack = () => {
     router.push('/assess/story');
