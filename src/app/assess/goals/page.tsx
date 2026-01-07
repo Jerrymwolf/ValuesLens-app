@@ -60,7 +60,7 @@ export default function GoalsPage() {
     }
   }, [isHydrated, sessionId, rankedValues.length, router]);
 
-  // ALL useCallback hooks
+  // ALL useCallback hooks - stable reference for WOOPValueCard
   const handleWoopComplete = useCallback((valueId: string, woopData: { outcome: string; obstacle: string; plan: string }) => {
     setWoop(valueId, woopData);
   }, [setWoop]);
@@ -191,11 +191,12 @@ export default function GoalsPage() {
             transition={{ delay: index * 0.1 }}
           >
             <WOOPValueCard
+              valueId={value.id}
               valueName={value.name}
               storyText={transcript}
               definition={definitions[value.id]?.definition}
               savedWoop={woop[value.id]}
-              onComplete={(woopData) => handleWoopComplete(value.id, woopData)}
+              onComplete={handleWoopComplete}
             />
           </motion.div>
         ))}

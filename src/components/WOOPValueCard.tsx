@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Sparkles, RefreshCw, Check } from 'lucide-react';
 
@@ -11,6 +11,7 @@ interface WOOPSuggestions {
 }
 
 interface WOOPValueCardProps {
+  valueId: string;
   valueName: string;
   storyText?: string;
   definition?: string;
@@ -19,10 +20,11 @@ interface WOOPValueCardProps {
     obstacle: string;
     plan: string;
   };
-  onComplete: (woop: { outcome: string; obstacle: string; plan: string }) => void;
+  onComplete: (valueId: string, woop: { outcome: string; obstacle: string; plan: string }) => void;
 }
 
 export default function WOOPValueCard({
+  valueId,
   valueName,
   storyText,
   definition,
@@ -41,8 +43,15 @@ export default function WOOPValueCard({
 
   const [expandedSection, setExpandedSection] = useState<'outcome' | 'obstacle' | 'plan'>('outcome');
 
+  // Use ref for callback to avoid stale closures and infinite loops
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
+
+  // Track if initial fetch was done
+  const hasFetchedRef = useRef(false);
+
   // Fetch WOOP suggestions
-  const fetchSuggestions = async () => {
+  const fetchSuggestions = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -69,14 +78,16 @@ export default function WOOPValueCard({
     } finally {
       setLoading(false);
     }
-  };
+  }, [valueName, storyText, definition]);
 
-  // Fetch on mount
+  // Fetch on mount (only if no saved data)
   useEffect(() => {
-    if (!suggestions && !savedWoop?.outcome) {
+    if (hasFetchedRef.current) return;
+    if (!savedWoop?.outcome) {
+      hasFetchedRef.current = true;
       fetchSuggestions();
     }
-  }, []);
+  }, [savedWoop?.outcome, fetchSuggestions]);
 
   // Get current action suggestions for selected obstacle
   const actionSuggestions = suggestions?.actionSuggestions?.[selectedObstacle] || [];
@@ -84,29 +95,37 @@ export default function WOOPValueCard({
   // Check if complete
   const isComplete = !!selectedOutcome && !!selectedObstacle && !!plan;
 
-  // Auto-advance sections
+  // Track previous values for auto-advance
+  const prevOutcomeRef = useRef(selectedOutcome);
+  const prevObstacleRef = useRef(selectedObstacle);
+
+  // Auto-advance sections when values change
   useEffect(() => {
-    if (selectedOutcome && expandedSection === 'outcome') {
+    // Only advance if outcome just got set (was empty, now has value)
+    if (selectedOutcome && !prevOutcomeRef.current && expandedSection === 'outcome') {
       setExpandedSection('obstacle');
     }
-  }, [selectedOutcome]);
+    prevOutcomeRef.current = selectedOutcome;
+  }, [selectedOutcome, expandedSection]);
 
   useEffect(() => {
-    if (selectedObstacle && expandedSection === 'obstacle') {
+    // Only advance if obstacle just got set (was empty, now has value)
+    if (selectedObstacle && !prevObstacleRef.current && expandedSection === 'obstacle') {
       setExpandedSection('plan');
     }
-  }, [selectedObstacle]);
+    prevObstacleRef.current = selectedObstacle;
+  }, [selectedObstacle, expandedSection]);
 
-  // Save when complete
+  // Save when complete - use ref for callback to avoid infinite loops
   useEffect(() => {
     if (isComplete) {
-      onComplete({
+      onCompleteRef.current(valueId, {
         outcome: selectedOutcome,
         obstacle: selectedObstacle,
         plan,
       });
     }
-  }, [selectedOutcome, selectedObstacle, plan, isComplete, onComplete]);
+  }, [valueId, selectedOutcome, selectedObstacle, plan, isComplete]);
 
   const toggleSection = (section: 'outcome' | 'obstacle' | 'plan') => {
     setExpandedSection(expandedSection === section ? section : section);
