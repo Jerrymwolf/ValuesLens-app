@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Target, BookOpen, Sparkles, Share2, ArrowLeft } from 'lucide-react';
+import { Target, BookOpen, Sparkles, Share2, ArrowLeft, ListChecks } from 'lucide-react';
 import { useAssessmentStore } from '@/stores/assessmentStore';
 import { ALL_VALUES } from '@/lib/data/values';
 import { shuffleArray } from '@/lib/utils/shuffle';
@@ -14,20 +14,26 @@ const STEPS = [
   {
     icon: Target,
     title: 'Sort',
-    time: '~5 min',
-    description: 'Swipe through 52 values and sort them by importance. Like Tinder, but for your values.',
+    time: '~4 min',
+    description: 'Swipe through 52 values. Right = Very Important, Up = Somewhat, Left = Less.',
+  },
+  {
+    icon: ListChecks,
+    title: 'Select Top 5',
+    time: '~2 min',
+    description: 'Pick and rank your top 5 values. Your top 3 go into your story.',
   },
   {
     icon: BookOpen,
     title: 'Story',
     time: '~3 min',
-    description: 'Pick your top 3 values and share a brief story about living them. Voice or text.',
+    description: 'Share a powerful story about living your values. Voice or text.',
   },
   {
     icon: Sparkles,
     title: 'Goals',
     time: '~2 min',
-    description: "Create 'if-then' commitments for 2026 using the WOOP method. AI helps with suggestions.",
+    description: "Create 'if-then' commitments using WOOP. AI helps with suggestions.",
   },
   {
     icon: Share2,
@@ -115,7 +121,7 @@ export default function StartPage() {
           className="text-center mb-10"
         >
           <h1 className="text-3xl font-bold text-brand-900 mb-2">How It Works</h1>
-          <p className="text-lg text-gray-600">Discover your top 3 values in about 10 minutes</p>
+          <p className="text-lg text-gray-600">Discover your core values in about 12 minutes</p>
         </motion.div>
 
         {/* Steps */}
@@ -157,7 +163,7 @@ export default function StartPage() {
           transition={{ delay: 0.4 }}
           className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm"
         >
-          <label className="flex items-start gap-3 cursor-pointer mb-6">
+          <label className="flex items-start gap-3 cursor-pointer mb-4">
             <input
               type="checkbox"
               checked={consent}
@@ -165,11 +171,24 @@ export default function StartPage() {
               className="mt-1 w-5 h-5 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
             />
             <span className="text-sm text-gray-600">
-              I consent to my anonymized responses being used for research to improve values-based
-              decision making.
+              I consent to my <strong>fully anonymized</strong> responses being used for research
+              to improve values-based decision making.
               <span className="text-gray-400 ml-1">(Optional)</span>
             </span>
           </label>
+
+          <p className="text-xs text-gray-500 mb-6 pl-8">
+            We don&apos;t collect names, emails, or any personal information. Your data is anonymized
+            at collection. See our{' '}
+            <a
+              href="https://github.com/jeremiahwolf/ValuesLens-app/blob/main/LICENSE"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-brand-600 hover:underline"
+            >
+              MIT License
+            </a>.
+          </p>
 
           <button
             onClick={handleStart}
@@ -180,7 +199,7 @@ export default function StartPage() {
           </button>
 
           <p className="text-center text-sm text-gray-400 mt-4">
-            No account required · Progress saved locally
+            No account required · Progress saved locally · Fully anonymous
           </p>
         </motion.div>
       </div>

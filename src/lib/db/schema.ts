@@ -21,6 +21,7 @@ export const sessions = pgTable('sessions', {
     ageRange?: '18-24' | '25-34' | '35-44' | '45-54' | '55-64' | '65+';
     industry?: string;
     leadershipRole?: boolean;
+    country?: string;
   }>(),
 });
 

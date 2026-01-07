@@ -5,8 +5,10 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import CardDeck from '@/components/CardDeck';
 import CustomValueModal from '@/components/CustomValueModal';
+import OnboardingTooltip from '@/components/OnboardingTooltip';
 import { useAssessmentStore } from '@/stores/assessmentStore';
 import { VALUES_BY_ID } from '@/lib/data/values';
+import { useHydration } from '@/hooks/useHydration';
 import type { SortCategory } from '@/lib/types';
 
 const MIN_VERY_IMPORTANT = 5;
@@ -14,6 +16,7 @@ const MIN_VERY_IMPORTANT_FOR_STORY = 3;
 
 export default function SortPage() {
   const router = useRouter();
+  const isHydrated = useHydration();
   const {
     shuffledValueIds,
     currentCardIndex,
@@ -23,6 +26,15 @@ export default function SortPage() {
   } = useAssessmentStore();
 
   const [showCustomValueModal, setShowCustomValueModal] = useState(false);
+
+  // Hydration guard
+  if (!isHydrated) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="animate-pulse text-gray-400">Loading...</div>
+      </div>
+    );
+  }
 
   // Redirect to home if no session
   useEffect(() => {
@@ -74,8 +86,8 @@ export default function SortPage() {
       return;
     }
 
-    // Navigate to story page
-    router.push('/assess/story');
+    // Navigate to select page
+    router.push('/assess/select');
   };
 
   if (!sessionId || values.length === 0) {
@@ -111,6 +123,9 @@ export default function SortPage() {
           onSkip={handleSkip}
         />
       </motion.div>
+
+      {/* Onboarding Tooltip */}
+      <OnboardingTooltip />
 
       {/* Custom Value Modal */}
       <CustomValueModal

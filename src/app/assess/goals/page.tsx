@@ -6,9 +6,11 @@ import { motion } from 'framer-motion';
 import { useAssessmentStore } from '@/stores/assessmentStore';
 import { VALUES_BY_ID } from '@/lib/data/values';
 import WOOPValueCard from '@/components/WOOPValueCard';
+import { useHydration } from '@/hooks/useHydration';
 
 export default function GoalsPage() {
   const router = useRouter();
+  const isHydrated = useHydration();
   const {
     sessionId,
     rankedValues,
@@ -23,6 +25,15 @@ export default function GoalsPage() {
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState('');
+
+  // Hydration guard - prevents React error #185
+  if (!isHydrated) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="animate-pulse text-gray-400">Loading...</div>
+      </div>
+    );
+  }
 
   // Get top 3 values
   const top3Values = useMemo(() => {
@@ -152,7 +163,7 @@ export default function GoalsPage() {
     >
       {/* Header */}
       <div className="text-center mb-6">
-        <p className="text-sm text-gray-500 mb-1">Step 3 of 4</p>
+        <p className="text-sm text-gray-500 mb-1">Step 4 of 5</p>
         <h1 className="text-2xl font-bold text-brand-900">
           Values in Action
         </h1>

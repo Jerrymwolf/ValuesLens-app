@@ -5,13 +5,23 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { RotateCcw, Sparkles, Coffee } from 'lucide-react';
 import ShareInterface2026 from '@/components/ShareInterface2026';
+import DemographicsForm from '@/components/DemographicsForm';
 import { useAssessmentStore } from '@/stores/assessmentStore';
 import { VALUES_BY_ID } from '@/lib/data/values';
 import { getFallbackTagline } from '@/lib/data/fallbackTaglines';
+import { useHydration } from '@/hooks/useHydration';
 import type { ValueWithDefinition } from '@/components/ValuesCard2026';
+
+interface Demographics {
+  ageRange?: '18-24' | '25-34' | '35-44' | '45-54' | '55-64' | '65+';
+  industry?: string;
+  leadershipRole?: boolean;
+  country?: string;
+}
 
 export default function SharePage() {
   const router = useRouter();
+  const isHydrated = useHydration();
   const {
     sessionId,
     rankedValues,
@@ -20,11 +30,23 @@ export default function SharePage() {
     customValue,
     shareSlug,
     setShareSlug,
+    setConsent,
+    demographics,
     reset,
   } = useAssessmentStore();
 
   const [isCreatingProfile, setIsCreatingProfile] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showDemographics, setShowDemographics] = useState(false);
+
+  // Hydration guard
+  if (!isHydrated) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="animate-pulse text-gray-400">Loading...</div>
+      </div>
+    );
+  }
 
   // Redirect if no session
   useEffect(() => {
@@ -43,6 +65,15 @@ export default function SharePage() {
 
     createProfile();
   }, [sessionId, rankedValues, shareSlug]);
+
+  // Show demographics modal after profile creation (if not already submitted)
+  useEffect(() => {
+    if (shareSlug && !demographics) {
+      // Small delay so user sees their card first
+      const timer = setTimeout(() => setShowDemographics(true), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [shareSlug, demographics]);
 
   const createProfile = async () => {
     setIsCreatingProfile(true);
@@ -107,6 +138,15 @@ export default function SharePage() {
   const handleStartOver = () => {
     reset();
     router.push('/');
+  };
+
+  const handleDemographicsSubmit = (data: Demographics) => {
+    setConsent(true, data);
+    setShowDemographics(false);
+  };
+
+  const handleDemographicsSkip = () => {
+    setShowDemographics(false);
   };
 
   if (!sessionId || valuesWithDefinitions.length === 0) {
@@ -196,6 +236,13 @@ export default function SharePage() {
           This is just the beginning. More values experiences coming in 2026.
         </p>
       </div>
+
+      {/* Demographics Modal */}
+      <DemographicsForm
+        isOpen={showDemographics}
+        onSubmit={handleDemographicsSubmit}
+        onSkip={handleDemographicsSkip}
+      />
     </motion.div>
   );
 }

@@ -5,9 +5,10 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import type { SortCategory } from '@/lib/types';
 
 interface Demographics {
-  ageRange?: string;
+  ageRange?: '18-24' | '25-34' | '35-44' | '45-54' | '55-64' | '65+';
   industry?: string;
   leadershipRole?: boolean;
+  country?: string;
 }
 
 interface ValueDefinition {

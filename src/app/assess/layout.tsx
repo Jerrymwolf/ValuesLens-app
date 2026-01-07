@@ -5,9 +5,10 @@ import { usePathname } from 'next/navigation';
 
 const STEPS = [
   { path: '/assess/sort', label: 'Sort', step: 1 },
-  { path: '/assess/story', label: 'Story', step: 2 },
-  { path: '/assess/goals', label: 'Goals', step: 3 },
-  { path: '/assess/share', label: 'Share', step: 4 },
+  { path: '/assess/select', label: 'Select', step: 2 },
+  { path: '/assess/story', label: 'Story', step: 3 },
+  { path: '/assess/goals', label: 'Goals', step: 4 },
+  { path: '/assess/share', label: 'Share', step: 5 },
 ];
 
 export default function AssessLayout({
