@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Download, Link2, Share2, Check, Smartphone, Monitor, Square, User } from 'lucide-react';
+import { Download, Link2, Share2, Check, User } from 'lucide-react';
 import ValuesCard2026, { type CardFormat, type ValueWithDefinition, type ContentLevel } from './ValuesCard2026';
 import { downloadCard, shareCard, copyToClipboard } from '@/lib/utils/imageGeneration';
 
@@ -11,12 +11,6 @@ interface ShareInterface2026Props {
   shareUrl?: string;
 }
 
-const FORMAT_OPTIONS: { id: CardFormat; label: string; icon: React.ReactNode; description: string }[] = [
-  { id: 'story', label: 'Story', icon: <Smartphone size={18} />, description: 'Instagram Stories/TikTok' },
-  { id: 'square', label: 'Square', icon: <Square size={18} />, description: 'Instagram/Facebook' },
-  { id: 'landscape', label: 'Wide', icon: <Monitor size={18} />, description: 'LinkedIn/Twitter' },
-];
-
 const CONTENT_LEVELS: { id: ContentLevel; label: string }[] = [
   { id: 'values-only', label: 'Values Only' },
   { id: 'taglines', label: '+ Taglines' },
@@ -24,7 +18,7 @@ const CONTENT_LEVELS: { id: ContentLevel; label: string }[] = [
 ];
 
 export default function ShareInterface2026({ values, shareUrl }: ShareInterface2026Props) {
-  const [format, setFormat] = useState<CardFormat>('story');
+  const format: CardFormat = 'story';
   const [contentLevel, setContentLevel] = useState<ContentLevel>('taglines');
   const [showName, setShowName] = useState(false);
   const [displayName, setDisplayName] = useState('');
@@ -135,31 +129,6 @@ export default function ShareInterface2026({ values, shareUrl }: ShareInterface2
           ))}
         </div>
       </div>
-
-      {/* Format selector */}
-      <div className="flex justify-center mb-4">
-        <div className="inline-flex bg-gray-100 rounded-xl p-1">
-          {FORMAT_OPTIONS.map((option) => (
-            <button
-              key={option.id}
-              onClick={() => setFormat(option.id)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                format === option.id
-                  ? 'bg-white text-brand-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              {option.icon}
-              <span className="hidden sm:inline">{option.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Format description */}
-      <p className="text-center text-sm text-gray-500 mb-6">
-        {FORMAT_OPTIONS.find((o) => o.id === format)?.description}
-      </p>
 
       {/* Card preview */}
       <div className="flex justify-center mb-8">

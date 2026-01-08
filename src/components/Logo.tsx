@@ -98,7 +98,17 @@ export default function Logo({
       {showText && (
         <span className={`font-bold ${text}`}>
           <span className="text-brand-900">Values</span>
-          <span className="bg-clip-text text-transparent bg-prism">Lens</span>
+          <span
+            className="bg-clip-text text-transparent bg-prism"
+            style={{
+              background: 'linear-gradient(135deg, #6B46C1, #4A5FC1, #E85D4C, #F6AD55)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}
+          >
+            Lens
+          </span>
         </span>
       )}
     </div>
