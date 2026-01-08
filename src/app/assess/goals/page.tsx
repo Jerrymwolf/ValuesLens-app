@@ -21,10 +21,12 @@ export default function GoalsPage() {
     definitions,
     setWoop,
     setDefinitions,
+    setGoals,
   } = useAssessmentStore();
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState('');
+  const [loadingMessage, setLoadingMessage] = useState('');
 
   // ALL useMemo hooks FIRST (before hydration guard)
   const top3Values = useMemo(() => {
@@ -81,9 +83,11 @@ export default function GoalsPage() {
   const generateDefinitions = async () => {
     setIsGenerating(true);
     setError('');
+    setLoadingMessage('Generating your definitions...');
 
     try {
-      const response = await fetch('/api/ai/generate-definitions', {
+      // Step 1: Generate definitions (existing)
+      const defResponse = await fetch('/api/ai/generate-definitions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -101,22 +105,67 @@ export default function GoalsPage() {
         }),
       });
 
-      if (!response.ok) {
+      if (!defResponse.ok) {
         throw new Error('Failed to generate definitions');
       }
 
-      const data = await response.json();
+      const defData = await defResponse.json();
 
-      if (data.definitions) {
-        setDefinitions(data.definitions);
-        router.push('/assess/share');
-      } else {
+      if (!defData.definitions) {
         throw new Error('No definitions returned');
       }
+
+      // Step 2: Polish the card text
+      setLoadingMessage('Polishing your card text...');
+
+      const polishResponse = await fetch('/api/ai/polish-card-text', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          story: transcript,
+          values: top3Values.map((v) => ({
+            id: v.id,
+            name: v.name,
+            rawTagline: defData.definitions[v.id]?.tagline || v.cardText,
+            rawCommitment: woop[v.id]
+              ? `If ${woop[v.id].obstacle}, then I will ${woop[v.id].plan}`
+              : '',
+          })),
+        }),
+      });
+
+      // Note: Polish API returns fallback on error, so check for values
+      const polishData = await polishResponse.json();
+
+      // Step 3: Merge polished text into definitions (using ID)
+      const polishedDefinitions = { ...defData.definitions };
+      if (polishData.values && Array.isArray(polishData.values)) {
+        polishData.values.forEach((pv: { id: string; tagline: string; commitment: string }) => {
+          if (pv.id && polishedDefinitions[pv.id]) {
+            polishedDefinitions[pv.id].tagline = pv.tagline;
+          }
+        });
+      }
+
+      // Step 4: Store polished commitments in goals (using ID)
+      const polishedGoals: Record<string, string> = {};
+      if (polishData.values && Array.isArray(polishData.values)) {
+        polishData.values.forEach((pv: { id: string; commitment: string }) => {
+          if (pv.id) {
+            polishedGoals[pv.id] = pv.commitment;
+          }
+        });
+      }
+
+      setDefinitions(polishedDefinitions);
+      setGoals(polishedGoals);
+
+      router.push('/assess/share');
     } catch (err) {
       console.error('Generation error:', err);
       setError('Failed to generate your personalized definitions. Please try again.');
       setIsGenerating(false);
+      setLoadingMessage('');
     }
   };
 
@@ -145,7 +194,7 @@ export default function GoalsPage() {
         >
           <div className="w-16 h-16 border-4 border-brand-200 border-t-brand-600 rounded-full animate-spin mx-auto mb-6" />
           <h2 className="text-xl font-bold text-brand-900 mb-2">
-            Creating your personalized card...
+            {loadingMessage || 'Creating your personalized card...'}
           </h2>
           <p className="text-gray-500">
             This usually takes a few seconds

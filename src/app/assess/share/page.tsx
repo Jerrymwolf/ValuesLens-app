@@ -211,7 +211,7 @@ export default function SharePage() {
           ValuesLens is free. If it helped you, consider buying me a coffee.
         </p>
         <a
-          href="https://buymeacoffee.com/valueslens"
+          href="https://buymeacoffee.com/thew0lf"
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#FFDD00] hover:bg-[#FFE44D] text-black rounded-full text-sm font-semibold transition-colors shadow-sm"

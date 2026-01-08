@@ -167,8 +167,23 @@ export default async function PublicProfilePage({ params }: PageProps) {
         </div>
 
         {/* Footer */}
-        <div className="text-center mt-12 text-white/50 text-sm">
-          valueslens.com
+        <div className="text-center mt-12 space-y-2">
+          <p className="text-white/50 text-sm">valueslens.com</p>
+          <a
+            href="https://buymeacoffee.com/thew0lf"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-xs text-white/40 hover:text-white/60 transition-colors"
+          >
+            {/* Coffee icon inline SVG (server-safe) */}
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10 2v2"/>
+              <path d="M14 2v2"/>
+              <path d="M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a4 4 0 1 1 0 8h-1"/>
+              <path d="M6 2v2"/>
+            </svg>
+            Support the creator
+          </a>
         </div>
       </div>
     </div>

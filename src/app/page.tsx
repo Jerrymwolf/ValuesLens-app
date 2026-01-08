@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
+import { Coffee } from 'lucide-react';
 import Logo from '@/components/Logo';
 
 export default function Home() {
@@ -100,10 +101,19 @@ export default function Home() {
 
       {/* Footer - pinned to bottom */}
       <footer className="flex-shrink-0 py-4 border-t border-gray-100 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 text-center">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 text-center flex flex-col items-center gap-2">
           <p className="text-xs sm:text-sm text-gray-400">
-            brought to you by Jeremiah Wolf
+            brought to you by The Wolf&apos;s
           </p>
+          <a
+            href="https://buymeacoffee.com/thew0lf"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <Coffee size={14} />
+            Buy me a coffee
+          </a>
         </div>
       </footer>
     </div>

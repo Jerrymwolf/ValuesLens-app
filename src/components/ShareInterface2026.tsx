@@ -32,19 +32,20 @@ export default function ShareInterface2026({ values, shareUrl }: ShareInterface2
   const [isSharing, setIsSharing] = useState(false);
   const [copied, setCopied] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
+  const exportCardRef = useRef<HTMLDivElement>(null);
 
   const valueName = values[0]?.name || 'values';
 
   const handleDownload = useCallback(async () => {
-    if (!cardRef.current) return;
+    if (!exportCardRef.current) return;
 
     setIsDownloading(true);
 
-    // Small delay to ensure card is rendered
+    // Small delay to ensure export card is rendered
     await new Promise(resolve => setTimeout(resolve, 100));
 
     try {
-      await downloadCard(cardRef.current, format, valueName);
+      await downloadCard(exportCardRef.current, format, valueName);
     } catch (error) {
       console.error('Download failed:', error);
     } finally {
@@ -53,16 +54,16 @@ export default function ShareInterface2026({ values, shareUrl }: ShareInterface2
   }, [format, valueName]);
 
   const handleShare = useCallback(async () => {
-    if (!cardRef.current) return;
+    if (!exportCardRef.current) return;
 
     setIsSharing(true);
 
-    // Small delay to ensure card is rendered
+    // Small delay to ensure export card is rendered
     await new Promise(resolve => setTimeout(resolve, 100));
 
     try {
       const shared = await shareCard(
-        cardRef.current,
+        exportCardRef.current,
         format,
         `My top 3 values for 2026: ${values.map(v => v.name).join(', ')}`,
         shareUrl
@@ -70,7 +71,7 @@ export default function ShareInterface2026({ values, shareUrl }: ShareInterface2
 
       if (!shared) {
         // Fallback to download if sharing not supported
-        await downloadCard(cardRef.current, format, valueName);
+        await downloadCard(exportCardRef.current, format, valueName);
       }
     } catch (error) {
       console.error('Share failed:', error);
@@ -177,6 +178,22 @@ export default function ShareInterface2026({ values, shareUrl }: ShareInterface2
             displayName={showName ? displayName : undefined}
           />
         </motion.div>
+      </div>
+
+      {/* Hidden export card - renders at exact export dimensions, no line-clamp */}
+      <div
+        className="fixed top-0 left-0 opacity-0 pointer-events-none"
+        style={{ zIndex: -1 }}
+        aria-hidden="true"
+      >
+        <ValuesCard2026
+          ref={exportCardRef}
+          values={values}
+          format={format}
+          contentLevel={contentLevel}
+          displayName={showName ? displayName : undefined}
+          forExport={true}
+        />
       </div>
 
       {/* Action buttons */}

@@ -19,6 +19,7 @@ interface ValuesCard2026Props {
   format: CardFormat;
   contentLevel?: ContentLevel;
   displayName?: string;
+  forExport?: boolean;
 }
 
 const DIMENSIONS: Record<CardFormat, { width: number; height: number }> = {
@@ -28,7 +29,7 @@ const DIMENSIONS: Record<CardFormat, { width: number; height: number }> = {
 };
 
 const ValuesCard2026 = forwardRef<HTMLDivElement, ValuesCard2026Props>(
-  ({ values, format, contentLevel = 'taglines', displayName }, ref) => {
+  ({ values, format, contentLevel = 'taglines', displayName, forExport = false }, ref) => {
     const { width, height } = DIMENSIONS[format];
     const aspectRatio = width / height;
 
@@ -40,7 +41,7 @@ const ValuesCard2026 = forwardRef<HTMLDivElement, ValuesCard2026Props>(
     const showTaglines = contentLevel === 'taglines' || contentLevel === 'commitments';
     const showCommitments = contentLevel === 'commitments';
 
-    // Sizing based on content level - more content = smaller fonts
+    // Sizing based on content level - more content = smaller fonts (for preview)
     const getSizes = () => {
       if (contentLevel === 'values-only') {
         return {
@@ -67,7 +68,34 @@ const ValuesCard2026 = forwardRef<HTMLDivElement, ValuesCard2026Props>(
       };
     };
 
-    const sizes = getSizes();
+    // Export-optimized sizes - larger fonts since we're at full resolution, no truncation
+    const getExportSizes = () => {
+      if (contentLevel === 'values-only') {
+        return {
+          titleSize: isStory ? 'text-3xl' : isSquare ? 'text-xl' : 'text-2xl',
+          valueTitleSize: isStory ? 'text-2xl' : isSquare ? 'text-lg' : 'text-xl',
+          taglineSize: '',
+          commitmentSize: '',
+        };
+      }
+      if (contentLevel === 'taglines') {
+        return {
+          titleSize: isStory ? 'text-2xl' : isSquare ? 'text-lg' : 'text-xl',
+          valueTitleSize: isStory ? 'text-xl' : isSquare ? 'text-base' : 'text-lg',
+          taglineSize: isStory ? 'text-lg' : isSquare ? 'text-sm' : 'text-base',
+          commitmentSize: '',
+        };
+      }
+      // commitments - densest content
+      return {
+        titleSize: isStory ? 'text-xl' : isSquare ? 'text-base' : 'text-lg',
+        valueTitleSize: isStory ? 'text-lg' : isSquare ? 'text-sm' : 'text-base',
+        taglineSize: isStory ? 'text-base' : isSquare ? 'text-xs' : 'text-sm',
+        commitmentSize: isStory ? 'text-base' : isSquare ? 'text-xs' : 'text-sm',
+      };
+    };
+
+    const sizes = forExport ? getExportSizes() : getSizes();
     const padding = isStory ? 'p-8' : isSquare ? 'p-6' : 'p-10';
     const gap = isStory ? 'gap-5' : isSquare ? 'gap-3' : 'gap-5';
     const prismBarHeight = isStory ? 'h-16' : isSquare ? 'h-10' : 'h-12';
@@ -77,9 +105,10 @@ const ValuesCard2026 = forwardRef<HTMLDivElement, ValuesCard2026Props>(
         ref={ref}
         className="relative overflow-hidden bg-white"
         style={{
-          aspectRatio,
-          width: '100%',
-          maxWidth: isLandscape ? '700px' : isSquare ? '400px' : '360px',
+          width: forExport ? `${width}px` : '100%',
+          height: forExport ? `${height}px` : 'auto',
+          aspectRatio: forExport ? undefined : aspectRatio,
+          maxWidth: forExport ? undefined : (isLandscape ? '700px' : isSquare ? '400px' : '360px'),
         }}
       >
         {/* Top Prism Gradient Bar */}
@@ -95,7 +124,7 @@ const ValuesCard2026 = forwardRef<HTMLDivElement, ValuesCard2026Props>(
             <div className="text-center mb-4">
               {/* Display Name */}
               {displayName && (
-                <p className={`${sizes.valueTitleSize} font-semibold text-prism-purple mb-2 line-clamp-1`}>
+                <p className={`${sizes.valueTitleSize} font-semibold text-prism-purple mb-2 ${forExport ? '' : 'line-clamp-1'}`}>
                   {displayName}
                 </p>
               )}
@@ -121,7 +150,7 @@ const ValuesCard2026 = forwardRef<HTMLDivElement, ValuesCard2026Props>(
             {isLandscape && (
               <div className="flex flex-col justify-center pr-6 border-r border-gray-200">
                 {displayName && (
-                  <p className={`${sizes.valueTitleSize} font-semibold text-prism-purple mb-2 line-clamp-1`}>
+                  <p className={`${sizes.valueTitleSize} font-semibold text-prism-purple mb-2 ${forExport ? '' : 'line-clamp-1'}`}>
                     {displayName}
                   </p>
                 )}
@@ -150,21 +179,21 @@ const ValuesCard2026 = forwardRef<HTMLDivElement, ValuesCard2026Props>(
                   <span className="text-lg font-bold text-prism-coral">
                     {index === 0 ? '①' : index === 1 ? '②' : '③'}
                   </span>
-                  <span className={`${sizes.valueTitleSize} font-bold text-brand-900 uppercase tracking-wide line-clamp-1`}>
+                  <span className={`${sizes.valueTitleSize} font-bold text-brand-900 uppercase tracking-wide ${forExport ? '' : 'line-clamp-1'}`}>
                     {item.name}
                   </span>
                 </div>
 
                 {/* Tagline */}
                 {showTaglines && item.tagline && (
-                  <p className={`${sizes.taglineSize} text-gray-600 italic leading-snug mb-1 line-clamp-2`}>
+                  <p className={`${sizes.taglineSize} text-gray-600 italic leading-snug mb-1 ${forExport ? '' : 'line-clamp-2'}`}>
                     {item.tagline}
                   </p>
                 )}
 
                 {/* 2026 Commitment */}
                 {showCommitments && item.commitment && (
-                  <p className={`${sizes.commitmentSize} text-prism-purple font-medium line-clamp-3`}>
+                  <p className={`${sizes.commitmentSize} text-prism-purple font-medium ${forExport ? '' : 'line-clamp-3'}`}>
                     {item.commitment}
                   </p>
                 )}
