@@ -22,7 +22,7 @@ export async function generateCardBlob(
   options: GenerateOptions = {}
 ): Promise<Blob> {
   const { width, height } = DIMENSIONS[format];
-  const { pixelRatio = 2, backgroundColor = '#667eea' } = options;
+  const { pixelRatio = 2, backgroundColor = '#ffffff' } = options;
 
   const blob = await toBlob(element, {
     width,
@@ -52,7 +52,7 @@ export async function generateCardDataUrl(
   options: GenerateOptions = {}
 ): Promise<string> {
   const { width, height } = DIMENSIONS[format];
-  const { pixelRatio = 2, backgroundColor = '#667eea' } = options;
+  const { pixelRatio = 2, backgroundColor = '#ffffff' } = options;
 
   const dataUrl = await toPng(element, {
     width,
