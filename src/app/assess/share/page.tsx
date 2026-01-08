@@ -59,7 +59,7 @@ export default function SharePage() {
         name: valueName,
         tagline: def?.tagline || valueTagline || getFallbackTagline(valueName),
         definition: def?.definition,
-        commitment: goals[id],
+        commitment: def?.commitment || goals[id], // New location, fallback to old goals
       };
     }).filter((v) => v.name);
   }, [rankedValues, definitions, goals, customValue]);

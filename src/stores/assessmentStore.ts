@@ -13,8 +13,10 @@ interface Demographics {
 
 interface ValueDefinition {
   tagline: string;
-  definition?: string;
-  behavioralAnchors?: string[];
+  commitment: string;
+  definition: string;
+  behavioralAnchors: string[];
+  weeklyQuestion: string;
   userEdited: boolean;
 }
 
@@ -89,7 +91,7 @@ interface AssessmentActions {
   // Definition
   setTranscript: (text: string) => void;
   setDefinitions: (defs: Record<string, ValueDefinition>) => void;
-  updateDefinition: (valueId: string, tagline: string, definition?: string, behavioralAnchors?: string[]) => void;
+  updateDefinition: (valueId: string, updates: Partial<Omit<ValueDefinition, 'userEdited'>>) => void;
 
   // Goals
   setGoal: (valueId: string, text: string) => void;
@@ -219,11 +221,15 @@ export const useAssessmentStore = create<AssessmentStore>()(
 
       setDefinitions: (defs) => set({ definitions: defs }),
 
-      updateDefinition: (valueId, tagline, definition, behavioralAnchors) =>
+      updateDefinition: (valueId, updates: Partial<Omit<ValueDefinition, 'userEdited'>>) =>
         set((state) => ({
           definitions: {
             ...state.definitions,
-            [valueId]: { tagline, definition, behavioralAnchors, userEdited: true },
+            [valueId]: {
+              ...state.definitions[valueId],
+              ...updates,
+              userEdited: true,
+            },
           },
         })),
 

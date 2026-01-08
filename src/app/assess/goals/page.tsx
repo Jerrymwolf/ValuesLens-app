@@ -16,12 +16,10 @@ export default function GoalsPage() {
     rankedValues,
     customValue,
     transcript,
-    sortedValues,
     woop,
     definitions,
     setWoop,
     setDefinitions,
-    setGoals,
   } = useAssessmentStore();
 
   const [isGenerating, setIsGenerating] = useState(false);
@@ -80,90 +78,83 @@ export default function GoalsPage() {
     router.push('/assess/story');
   };
 
-  const generateDefinitions = async () => {
+  const generateValuesCard = async () => {
     setIsGenerating(true);
     setError('');
-    setLoadingMessage('Generating your definitions...');
+    setLoadingMessage('Creating your personalized card...');
 
     try {
-      // Step 1: Generate definitions (existing)
-      const defResponse = await fetch('/api/ai/generate-definitions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId,
-          rankedValues,
-          transcript,
-          sortedValues,
-          goals: Object.fromEntries(
-            top3Values.map((v) => {
-              const w = woop[v.id];
-              return [v.id, w ? `If ${w.obstacle.toLowerCase()}, then I will ${w.plan}` : ''];
-            })
-          ),
-          customValue,
-        }),
+      // Format values with IDs and names
+      const valuesInput = top3Values.map((v) => ({
+        id: v.id,
+        name: v.name,
+      }));
+
+      // Format WOOP data
+      const woopInput: Record<string, { obstacle: string; action: string }> = {};
+      top3Values.forEach((v) => {
+        const w = woop[v.id];
+        if (w) {
+          woopInput[v.id] = {
+            obstacle: w.obstacle,
+            action: w.plan, // Note: store calls it "plan", API expects "action"
+          };
+        }
       });
 
-      if (!defResponse.ok) {
-        throw new Error('Failed to generate definitions');
-      }
-
-      const defData = await defResponse.json();
-
-      if (!defData.definitions) {
-        throw new Error('No definitions returned');
-      }
-
-      // Step 2: Polish the card text
-      setLoadingMessage('Polishing your card text...');
-
-      const polishResponse = await fetch('/api/ai/polish-card-text', {
+      const response = await fetch('/api/ai/generate-values-card', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          values: valuesInput,
           story: transcript,
-          values: top3Values.map((v) => ({
-            id: v.id,
-            name: v.name,
-            rawTagline: defData.definitions[v.id]?.tagline || v.cardText,
-            rawCommitment: woop[v.id]
-              ? `If ${woop[v.id].obstacle}, then I will ${woop[v.id].plan}`
-              : '',
-          })),
+          woop: woopInput,
         }),
       });
 
-      // Note: Polish API returns fallback on error, so check for values
-      const polishData = await polishResponse.json();
-
-      // Step 3: Merge polished text into definitions (using ID)
-      const polishedDefinitions = { ...defData.definitions };
-      if (polishData.values && Array.isArray(polishData.values)) {
-        polishData.values.forEach((pv: { id: string; tagline: string; commitment: string }) => {
-          if (pv.id && polishedDefinitions[pv.id]) {
-            polishedDefinitions[pv.id].tagline = pv.tagline;
-          }
-        });
+      if (!response.ok) {
+        throw new Error('Failed to generate card');
       }
 
-      // Step 4: Store polished commitments in goals (using ID)
-      const polishedGoals: Record<string, string> = {};
-      if (polishData.values && Array.isArray(polishData.values)) {
-        polishData.values.forEach((pv: { id: string; commitment: string }) => {
-          if (pv.id) {
-            polishedGoals[pv.id] = pv.commitment;
-          }
-        });
+      const data = await response.json();
+
+      if (!data.values || !Array.isArray(data.values)) {
+        throw new Error('Invalid response from API');
       }
 
-      setDefinitions(polishedDefinitions);
-      setGoals(polishedGoals);
+      // Transform API response to store format
+      const newDefinitions: Record<string, {
+        tagline: string;
+        commitment: string;
+        definition: string;
+        behavioralAnchors: string[];
+        weeklyQuestion: string;
+        userEdited: boolean;
+      }> = {};
 
+      data.values.forEach((v: {
+        id: string;
+        tagline: string;
+        commitment: string;
+        definition: string;
+        behavioral_anchors: string[];
+        weekly_question: string;
+      }) => {
+        newDefinitions[v.id] = {
+          tagline: v.tagline,
+          commitment: v.commitment,
+          definition: v.definition,
+          behavioralAnchors: v.behavioral_anchors,
+          weeklyQuestion: v.weekly_question,
+          userEdited: false,
+        };
+      });
+
+      setDefinitions(newDefinitions);
       router.push('/assess/share');
     } catch (err) {
       console.error('Generation error:', err);
-      setError('Failed to generate your personalized definitions. Please try again.');
+      setError('Failed to generate your card. Please try again.');
       setIsGenerating(false);
       setLoadingMessage('');
     }
@@ -171,7 +162,7 @@ export default function GoalsPage() {
 
   const handleContinue = () => {
     if (allComplete) {
-      generateDefinitions();
+      generateValuesCard();
     }
   };
 
