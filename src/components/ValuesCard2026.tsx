@@ -68,36 +68,36 @@ const ValuesCard2026 = forwardRef<HTMLDivElement, ValuesCard2026Props>(
       };
     };
 
-    // Export-optimized sizes - larger fonts since we're at full resolution, no truncation
+    // Export-optimized sizes - larger fonts for readable exports
     const getExportSizes = () => {
       if (contentLevel === 'values-only') {
         return {
-          titleSize: isStory ? 'text-3xl' : isSquare ? 'text-xl' : 'text-2xl',
-          valueTitleSize: isStory ? 'text-2xl' : isSquare ? 'text-lg' : 'text-xl',
+          titleSize: isStory ? 'text-3xl' : isSquare ? 'text-2xl' : 'text-2xl',
+          valueTitleSize: isStory ? 'text-2xl' : isSquare ? 'text-xl' : 'text-xl',
           taglineSize: '',
           commitmentSize: '',
         };
       }
       if (contentLevel === 'taglines') {
         return {
-          titleSize: isStory ? 'text-2xl' : isSquare ? 'text-lg' : 'text-xl',
-          valueTitleSize: isStory ? 'text-xl' : isSquare ? 'text-base' : 'text-lg',
-          taglineSize: isStory ? 'text-lg' : isSquare ? 'text-sm' : 'text-base',
+          titleSize: isStory ? 'text-2xl' : isSquare ? 'text-xl' : 'text-xl',
+          valueTitleSize: isStory ? 'text-xl' : isSquare ? 'text-lg' : 'text-lg',
+          taglineSize: isStory ? 'text-lg' : isSquare ? 'text-base' : 'text-base',
           commitmentSize: '',
         };
       }
-      // commitments - densest content
+      // commitments - densest content, still readable
       return {
-        titleSize: isStory ? 'text-xl' : isSquare ? 'text-base' : 'text-lg',
-        valueTitleSize: isStory ? 'text-lg' : isSquare ? 'text-sm' : 'text-base',
-        taglineSize: isStory ? 'text-base' : isSquare ? 'text-xs' : 'text-sm',
-        commitmentSize: isStory ? 'text-base' : isSquare ? 'text-xs' : 'text-sm',
+        titleSize: isStory ? 'text-xl' : isSquare ? 'text-lg' : 'text-xl',
+        valueTitleSize: isStory ? 'text-lg' : isSquare ? 'text-base' : 'text-lg',
+        taglineSize: isStory ? 'text-base' : isSquare ? 'text-sm' : 'text-base',
+        commitmentSize: isStory ? 'text-base' : isSquare ? 'text-sm' : 'text-base',
       };
     };
 
     const sizes = forExport ? getExportSizes() : getSizes();
-    const padding = isStory ? 'p-8' : isSquare ? 'p-6' : 'p-10';
-    const gap = isStory ? 'gap-5' : isSquare ? 'gap-3' : 'gap-5';
+    const padding = isStory ? 'p-8' : isSquare ? 'p-5' : 'p-10';
+    const gap = isStory ? 'gap-5' : isSquare ? 'gap-4' : 'gap-5';
     const prismBarHeight = isStory ? 'h-16' : isSquare ? 'h-10' : 'h-12';
 
     return (
@@ -179,21 +179,21 @@ const ValuesCard2026 = forwardRef<HTMLDivElement, ValuesCard2026Props>(
                   <span className="text-lg font-bold text-prism-coral">
                     {index === 0 ? '①' : index === 1 ? '②' : '③'}
                   </span>
-                  <span className={`${sizes.valueTitleSize} font-bold text-brand-900 uppercase tracking-wide ${forExport ? '' : 'line-clamp-1'}`}>
+                  <span className={`${sizes.valueTitleSize} font-bold text-brand-900 uppercase tracking-wide ${forExport ? 'break-words' : 'line-clamp-1'}`}>
                     {item.name}
                   </span>
                 </div>
 
                 {/* Tagline */}
                 {showTaglines && item.tagline && (
-                  <p className={`${sizes.taglineSize} text-gray-600 italic leading-snug mb-1 ${forExport ? '' : 'line-clamp-2'}`}>
+                  <p className={`${sizes.taglineSize} text-gray-600 italic leading-snug mb-1 ${forExport ? 'break-words' : 'line-clamp-2'}`}>
                     {item.tagline}
                   </p>
                 )}
 
                 {/* 2026 Commitment */}
                 {showCommitments && item.commitment && (
-                  <p className={`${sizes.commitmentSize} text-prism-purple font-medium ${forExport ? '' : 'line-clamp-3'}`}>
+                  <p className={`${sizes.commitmentSize} text-prism-purple font-medium ${forExport ? 'break-words' : 'line-clamp-3'}`}>
                     {item.commitment}
                   </p>
                 )}
