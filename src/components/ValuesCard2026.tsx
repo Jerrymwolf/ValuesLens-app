@@ -1,7 +1,6 @@
 'use client';
 
 import { forwardRef } from 'react';
-import Logo from './Logo';
 
 interface ValueWithDefinition {
   id: string;
@@ -104,15 +103,10 @@ const ValuesCard2026 = forwardRef<HTMLDivElement, ValuesCard2026Props>(
           style={{ background: 'linear-gradient(90deg, #8B5CF6, #F97316, #EC4899)' }}
         />
 
-        {/* Logo */}
-        <div className="absolute top-20 left-0 right-0 flex justify-center">
-          <Logo size="lg" animate={false} />
-        </div>
-
         {/* Content Container */}
         <div
           className="relative h-full flex flex-col p-8"
-          style={{ paddingTop: '140px' }}
+          style={{ paddingTop: '80px' }}
         >
           {/* Title Section */}
           <div className="text-center mb-3 flex-shrink-0">
