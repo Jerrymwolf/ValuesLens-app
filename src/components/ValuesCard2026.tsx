@@ -125,7 +125,7 @@ const ValuesCard2026 = forwardRef<HTMLDivElement, ValuesCard2026Props>(
           width: forExport ? `${width}px` : '100%',
           height: forExport ? `${height}px` : 'auto',
           aspectRatio: forExport ? undefined : aspectRatio,
-          maxWidth: forExport ? undefined : (isLandscape ? '700px' : isSquare ? '400px' : '360px'),
+          maxWidth: forExport ? undefined : (isLandscape ? '900px' : isSquare ? '400px' : '360px'),
         }}
       >
         {/* Top Prism Gradient Bar - inline style for html-to-image compatibility */}
@@ -164,7 +164,7 @@ const ValuesCard2026 = forwardRef<HTMLDivElement, ValuesCard2026Props>(
           <div
             className={`flex-1 flex ${isLandscape ? 'flex-row' : 'flex-col'} ${gap} ${
               isLandscape ? 'items-stretch' : ''
-            } overflow-hidden`}
+            }`}
           >
             {/* Landscape: Title on left */}
             {isLandscape && (
@@ -192,28 +192,28 @@ const ValuesCard2026 = forwardRef<HTMLDivElement, ValuesCard2026Props>(
             {values.slice(0, 3).map((item, index) => (
               <div
                 key={item.id}
-                className={`${isLandscape ? 'flex-1 px-4 border-r border-gray-100 last:border-r-0 overflow-hidden' : 'flex-shrink-0'}`}
+                className={`${isLandscape ? 'flex-1 px-4 border-r border-gray-100 last:border-r-0 min-w-0' : ''}`}
               >
                 {/* Rank + Name */}
                 <div className="flex items-center gap-2 mb-1">
                   <span className={`${sizes.rankSize} font-bold text-prism-coral flex-shrink-0`}>
                     {index === 0 ? '①' : index === 1 ? '②' : '③'}
                   </span>
-                  <span className={`${sizes.valueTitleSize} font-bold text-brand-900 uppercase tracking-wide break-words`}>
+                  <span className={`${sizes.valueTitleSize} font-bold text-brand-900 uppercase tracking-wide ${isLandscape ? 'line-clamp-1' : ''}`}>
                     {item.name}
                   </span>
                 </div>
 
                 {/* Tagline */}
                 {showTaglines && item.tagline && (
-                  <p className={`${sizes.taglineSize} text-gray-600 italic leading-snug mb-1 break-words`}>
+                  <p className={`${sizes.taglineSize} text-gray-600 italic leading-snug mb-1 ${isLandscape ? 'line-clamp-2' : ''}`}>
                     {item.tagline}
                   </p>
                 )}
 
                 {/* 2026 Commitment */}
                 {showCommitments && item.commitment && (
-                  <p className={`${sizes.commitmentSize} text-prism-purple font-medium break-words`}>
+                  <p className={`${sizes.commitmentSize} text-prism-purple font-medium ${isLandscape ? 'line-clamp-3' : ''}`}>
                     {item.commitment}
                   </p>
                 )}
