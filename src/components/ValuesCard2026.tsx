@@ -113,8 +113,8 @@ const ValuesCard2026 = forwardRef<HTMLDivElement, ValuesCard2026Props>(
     const sizes = getSizes(density, format);
 
     // Layout spacing
-    const padding = isStory ? 'p-8' : isSquare ? 'p-5' : 'p-8';
-    const gap = isStory ? 'gap-4' : isSquare ? 'gap-3' : 'gap-4';
+    const padding = isStory ? 'p-8' : isSquare ? 'p-4' : 'p-6';
+    const gap = isStory ? 'gap-4' : isSquare ? 'gap-2' : 'gap-3';
     const prismBarHeight = isStory ? 'h-16' : isSquare ? 'h-10' : 'h-12';
 
     return (
@@ -125,7 +125,7 @@ const ValuesCard2026 = forwardRef<HTMLDivElement, ValuesCard2026Props>(
           width: forExport ? `${width}px` : '100%',
           height: forExport ? `${height}px` : 'auto',
           aspectRatio: forExport ? undefined : aspectRatio,
-          maxWidth: forExport ? undefined : (isLandscape ? '900px' : isSquare ? '400px' : '360px'),
+          maxWidth: forExport ? undefined : (isLandscape ? '100%' : isSquare ? '400px' : '360px'),
         }}
       >
         {/* Top Prism Gradient Bar - inline style for html-to-image compatibility */}
@@ -137,7 +137,7 @@ const ValuesCard2026 = forwardRef<HTMLDivElement, ValuesCard2026Props>(
         {/* Content Container */}
         <div
           className={`relative h-full flex ${isLandscape ? 'flex-row' : 'flex-col'} ${padding}`}
-          style={{ paddingTop: isStory ? '80px' : isSquare ? '56px' : '64px' }}
+          style={{ paddingTop: isStory ? '80px' : isSquare ? '48px' : '64px' }}
         >
           {/* Title Section - Story/Square */}
           {!isLandscape && (
@@ -192,28 +192,28 @@ const ValuesCard2026 = forwardRef<HTMLDivElement, ValuesCard2026Props>(
             {values.slice(0, 3).map((item, index) => (
               <div
                 key={item.id}
-                className={`${isLandscape ? 'flex-1 px-4 border-r border-gray-100 last:border-r-0 min-w-0' : ''}`}
+                className={`overflow-hidden ${isLandscape ? 'flex-1 px-4 border-r border-gray-100 last:border-r-0 min-w-0' : ''}`}
               >
                 {/* Rank + Name */}
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-2 mb-1 min-w-0">
                   <span className={`${sizes.rankSize} font-bold text-prism-coral flex-shrink-0`}>
                     {index === 0 ? '①' : index === 1 ? '②' : '③'}
                   </span>
-                  <span className={`${sizes.valueTitleSize} font-bold text-brand-900 uppercase tracking-wide ${isLandscape ? 'line-clamp-1' : ''}`}>
+                  <span className={`${sizes.valueTitleSize} font-bold text-brand-900 uppercase tracking-wide truncate`}>
                     {item.name}
                   </span>
                 </div>
 
                 {/* Tagline */}
                 {showTaglines && item.tagline && (
-                  <p className={`${sizes.taglineSize} text-gray-600 italic leading-snug mb-1 ${isLandscape ? 'line-clamp-2' : ''}`}>
+                  <p className={`${sizes.taglineSize} text-gray-600 italic leading-snug mb-1 ${!isStory ? 'line-clamp-2' : ''}`}>
                     {item.tagline}
                   </p>
                 )}
 
                 {/* 2026 Commitment */}
                 {showCommitments && item.commitment && (
-                  <p className={`${sizes.commitmentSize} text-prism-purple font-medium ${isLandscape ? 'line-clamp-3' : ''}`}>
+                  <p className={`${sizes.commitmentSize} text-prism-purple font-medium ${isSquare ? 'line-clamp-2' : isLandscape ? 'line-clamp-3' : ''}`}>
                     {item.commitment}
                   </p>
                 )}
