@@ -75,10 +75,7 @@ export const profiles = pgTable(
   'profiles',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    sessionId: uuid('session_id')
-      .references(() => sessions.id, { onDelete: 'cascade' })
-      .notNull()
-      .unique(),
+    sessionId: text('session_id').notNull().unique(),
     profileJson: jsonb('profile_json')
       .$type<{
         top3: {

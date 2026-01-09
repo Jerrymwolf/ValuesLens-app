@@ -19,7 +19,7 @@ const CONTENT_LEVELS: { id: ContentLevel; label: string }[] = [
 
 export default function ShareInterface2026({ values, shareUrl }: ShareInterface2026Props) {
   const format: CardFormat = 'story';
-  const [contentLevel, setContentLevel] = useState<ContentLevel>('taglines');
+  const [contentLevel, setContentLevel] = useState<ContentLevel>('commitments');
   const [showName, setShowName] = useState(false);
   const [displayName, setDisplayName] = useState('');
   const [isDownloading, setIsDownloading] = useState(false);
