@@ -8,9 +8,24 @@ interface ValueInput {
   name: string;
 }
 
-interface WOOPRequest {
+// New v11 format
+interface WOOPRequestNew {
   values: ValueInput[];
   story: string;
+}
+
+// Legacy format (for backwards compatibility)
+interface WOOPRequestLegacy {
+  valueName: string;
+  storyText?: string;
+  definition?: string;
+}
+
+// Legacy response format
+interface WOOPResponseLegacy {
+  outcomes: string[];
+  obstacles: string[];
+  actionSuggestions: Record<string, string[]>;
 }
 
 interface WOOPItem {
@@ -249,12 +264,166 @@ function generateFallbackWOOP(values: ValueInput[]): WOOPResponse {
   };
 }
 
+// Generate legacy fallback for backwards compatibility
+function generateFallbackLegacy(valueName: string): WOOPResponseLegacy {
+  const lowerName = valueName.toLowerCase();
+
+  const outcomes = [
+    `Feel authentic and aligned with ${lowerName} in all decisions`,
+    `Experience deeper, more meaningful relationships through ${lowerName}`,
+    `Wake up feeling proud of how I live ${lowerName} daily`,
+  ];
+
+  const obstacles = [
+    'Fear of being judged',
+    'Desire to avoid discomfort',
+    'Old habits and patterns',
+    'Self-doubt in difficult moments',
+  ];
+
+  const actionSuggestions: Record<string, string[]> = {
+    'Fear of being judged': [
+      'take a breath and speak my truth anyway',
+      'remember that authenticity matters more than approval',
+    ],
+    'Desire to avoid discomfort': [
+      'sit with the discomfort as growth',
+      'remind myself that short-term ease often leads to long-term regret',
+    ],
+    'Old habits and patterns': [
+      'pause before reacting and choose consciously',
+      'ask: what would my best self do here?',
+    ],
+    'Self-doubt in difficult moments': [
+      'recall a time I successfully lived this value',
+      'trust my values over my fears',
+    ],
+  };
+
+  return { outcomes, obstacles, actionSuggestions };
+}
+
+// Transform v11 response to legacy format
+function transformToLegacy(woopResponse: WOOPResponse, valueName: string): WOOPResponseLegacy {
+  const woopItem = woopResponse.woop[0];
+
+  // Generate varied outcomes based on the single value
+  const outcomes = [
+    woopItem?.outcome || `Live ${valueName.toLowerCase()} fully`,
+    `Feel aligned and authentic when choosing ${valueName.toLowerCase()}`,
+    `Experience the freedom that comes from living ${valueName.toLowerCase()}`,
+  ];
+
+  // Generate obstacles from the single woop item
+  const obstacles = [
+    woopItem?.obstacle || 'Fear of being judged',
+    'Desire to avoid discomfort',
+    'Old habits and patterns',
+    'Self-doubt in difficult moments',
+  ];
+
+  // Generate action suggestions for each obstacle
+  const actionSuggestions: Record<string, string[]> = {};
+  obstacles.forEach((obstacle, i) => {
+    if (i === 0 && woopItem?.reframe) {
+      actionSuggestions[obstacle] = [
+        woopItem.reframe,
+        'pause and reconnect with what matters',
+      ];
+    } else {
+      actionSuggestions[obstacle] = [
+        'pause and reconnect with what matters',
+        'remember why this value is important to me',
+      ];
+    }
+  });
+
+  return { outcomes, obstacles, actionSuggestions };
+}
+
+// Check if request is legacy format
+function isLegacyRequest(body: unknown): body is WOOPRequestLegacy {
+  return typeof body === 'object' && body !== null && 'valueName' in body;
+}
+
 export async function POST(request: Request) {
   let requestValues: ValueInput[] = [];
+  let isLegacy = false;
+  let legacyValueName = '';
 
   try {
-    const body: WOOPRequest = await request.json();
-    const { values, story } = body;
+    const body = await request.json();
+
+    // Detect legacy format
+    if (isLegacyRequest(body)) {
+      isLegacy = true;
+      legacyValueName = body.valueName;
+
+      if (!body.valueName) {
+        return NextResponse.json(
+          { error: 'Value name is required' },
+          { status: 400 }
+        );
+      }
+
+      // Convert legacy to new format
+      requestValues = [{
+        id: body.valueName.toLowerCase().replace(/\s+/g, '_'),
+        name: body.valueName,
+      }];
+
+      // Check for API key - return legacy fallback
+      if (!process.env.ANTHROPIC_API_KEY) {
+        console.warn('No ANTHROPIC_API_KEY found, using fallback WOOP');
+        return NextResponse.json({
+          ...generateFallbackLegacy(body.valueName),
+          fallback: true,
+        });
+      }
+
+      // Call API with converted format
+      const response = await client.messages.create({
+        model: 'claude-sonnet-4-5-20250514',
+        max_tokens: 1000,
+        temperature: 0.7,
+        tools,
+        system: SYSTEM_PROMPT,
+        messages: [
+          {
+            role: 'user',
+            content: buildUserPrompt(requestValues, body.storyText || ''),
+          },
+        ],
+      });
+
+      // Extract tool_use block
+      const toolUseBlock = response.content.find(
+        (block): block is Anthropic.ToolUseBlock => block.type === 'tool_use'
+      );
+
+      if (toolUseBlock && toolUseBlock.name === 'generate_woop_analysis') {
+        const input = toolUseBlock.input as {
+          language_to_echo: string[];
+          woop: WOOPItem[];
+        };
+
+        // Transform to legacy format
+        const legacyResponse = transformToLegacy(
+          { language_to_echo: input.language_to_echo, woop: input.woop },
+          body.valueName
+        );
+        return NextResponse.json(legacyResponse);
+      }
+
+      // Fallback if no tool use
+      return NextResponse.json({
+        ...generateFallbackLegacy(body.valueName),
+        fallback: true,
+      });
+    }
+
+    // New v11 format
+    const { values, story } = body as WOOPRequestNew;
     requestValues = values || [];
 
     if (!values || values.length === 0) {
@@ -313,7 +482,15 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('WOOP generation error:', error);
 
-    // Return fallback on error
+    // Return appropriate fallback based on format
+    if (isLegacy && legacyValueName) {
+      return NextResponse.json({
+        ...generateFallbackLegacy(legacyValueName),
+        fallback: true,
+        error: 'AI generation failed, using fallback suggestions',
+      });
+    }
+
     if (requestValues.length > 0) {
       return NextResponse.json({
         ...generateFallbackWOOP(requestValues),
