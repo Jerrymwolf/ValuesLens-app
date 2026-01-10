@@ -616,8 +616,17 @@ function generateFallbackWoop(analysis: StoryAnalysis): WOOPItem[] {
 // ============ MAIN HANDLER ============
 
 export async function POST(request: Request) {
+  // Store values outside try block for error recovery
+  let requestValues: ValueInput[] = [];
+  let requestStory = '';
+
   try {
-    const { values, story } = (await request.json()) as WOOPRequest;
+    const body = (await request.json()) as WOOPRequest;
+    requestValues = body.values || [];
+    requestStory = body.story || '';
+
+    const values = requestValues;
+    const story = requestStory;
 
     // Validate request
     if (!values || values.length === 0) {
@@ -640,7 +649,7 @@ export async function POST(request: Request) {
     console.log('[WOOP] Stage 1: Analyzing story...');
 
     const analysisResponse = await client.messages.create({
-      model: 'claude-sonnet-4-5-20250514',
+      model: 'claude-sonnet-4-5-20250929',
       max_tokens: 2000,
       temperature: 0.5,
       tools: analysisTools,
@@ -663,7 +672,7 @@ export async function POST(request: Request) {
     console.log('[WOOP] Stage 2: Generating WOOP statements...');
 
     const woopResponse = await client.messages.create({
-      model: 'claude-sonnet-4-5-20250514',
+      model: 'claude-sonnet-4-5-20250929',
       max_tokens: 1000,
       temperature: 0.7,
       tools: woopTools,
@@ -692,24 +701,16 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('[WOOP] Pipeline error:', error);
 
-    // Try to get values from request for fallback
-    try {
-      const body = await request.clone().json();
-      const values = body.values || [];
-      const story = body.story || '';
-
-      if (values.length > 0) {
-        const fallbackAnalysis = generateFallbackAnalysis(values, story);
-        return NextResponse.json({
-          language_to_echo: fallbackAnalysis.language_to_echo,
-          analysis: fallbackAnalysis.values_analysis,
-          woop: generateFallbackWoop(fallbackAnalysis),
-          fallback: true,
-          error: 'Pipeline failed, using fallback',
-        });
-      }
-    } catch {
-      // Ignore parse error
+    // Use stored values for fallback (no need to re-parse request)
+    if (requestValues.length > 0) {
+      const fallbackAnalysis = generateFallbackAnalysis(requestValues, requestStory);
+      return NextResponse.json({
+        language_to_echo: fallbackAnalysis.language_to_echo,
+        analysis: fallbackAnalysis.values_analysis,
+        woop: generateFallbackWoop(fallbackAnalysis),
+        fallback: true,
+        error: 'Pipeline failed, using fallback',
+      });
     }
 
     return NextResponse.json(

@@ -462,7 +462,7 @@ export async function POST(request: Request) {
 
     // Call Anthropic API
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-5-20250514',
+      model: 'claude-sonnet-4-5-20250929',
       max_tokens: 3000,
       temperature: 0.7,
       system: SYSTEM_PROMPT,
