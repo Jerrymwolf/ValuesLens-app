@@ -44,7 +44,6 @@ export default function GoalsPage() {
     customValue,
     transcript,
     woop,
-    definitions,
     setWoop,
     setDefinitions,
   } = useAssessmentStore();
