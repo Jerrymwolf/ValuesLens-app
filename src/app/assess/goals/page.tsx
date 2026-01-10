@@ -1,12 +1,39 @@
 'use client';
 
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { useAssessmentStore } from '@/stores/assessmentStore';
 import { VALUES_BY_ID } from '@/lib/data/values';
 import WOOPValueCard from '@/components/WOOPValueCard';
 import { useHydration } from '@/hooks/useHydration';
+
+// Types for WOOP API response
+interface WOOPItem {
+  value_id: string;
+  outcome: string;
+  obstacle: string;
+  obstacle_category: string;
+  reframe: string;
+}
+
+interface ValueAnalysis {
+  value_id: string;
+  value_name: string;
+  affect: { surface: string; deeper: string };
+  behavior: { protective: string; aspirational: string; tell: string };
+  cognition: { belief: string; lie: string };
+  desire: { hungry_for: string; protecting: string; relief_sought: string };
+  wound: string;
+  wince_moment: string;
+  nod_moment: string;
+}
+
+interface WOOPSuggestions {
+  language_to_echo: string[];
+  analysis: ValueAnalysis[];
+  woop: WOOPItem[];
+}
 
 export default function GoalsPage() {
   const router = useRouter();
@@ -25,6 +52,14 @@ export default function GoalsPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState('');
   const [loadingMessage, setLoadingMessage] = useState('');
+
+  // WOOP suggestions state
+  const [woopSuggestions, setWoopSuggestions] = useState<WOOPSuggestions | null>(null);
+  const [woopLoading, setWoopLoading] = useState(true);
+  const [woopError, setWoopError] = useState<string | null>(null);
+
+  // Ref to prevent double-fetch
+  const hasFetchedWoopRef = useRef(false);
 
   // ALL useMemo hooks FIRST (before hydration guard)
   const top3Values = useMemo(() => {
@@ -60,6 +95,45 @@ export default function GoalsPage() {
     }
   }, [isHydrated, sessionId, rankedValues.length, router]);
 
+  // Fetch WOOP suggestions on mount
+  useEffect(() => {
+    if (!isHydrated) return;
+    if (!transcript || top3Values.length === 0) return;
+    if (hasFetchedWoopRef.current) return;
+
+    hasFetchedWoopRef.current = true;
+
+    const fetchWoop = async () => {
+      try {
+        setWoopLoading(true);
+        setWoopError(null);
+
+        const response = await fetch('/api/ai/generate-woop', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            values: top3Values.map(v => ({ id: v.id, name: v.name })),
+            story: transcript,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to generate suggestions');
+        }
+
+        const data = await response.json();
+        setWoopSuggestions(data);
+      } catch (err) {
+        console.error('WOOP fetch error:', err);
+        setWoopError('Could not load personalized suggestions. You can still write your own.');
+      } finally {
+        setWoopLoading(false);
+      }
+    };
+
+    fetchWoop();
+  }, [isHydrated, transcript, top3Values]);
+
   // ALL useCallback hooks - stable reference for WOOPValueCard
   const handleWoopComplete = useCallback((valueId: string, woopData: { outcome: string; obstacle: string; plan: string }) => {
     setWoop(valueId, woopData);
@@ -90,17 +164,22 @@ export default function GoalsPage() {
         name: v.name,
       }));
 
-      // Format WOOP data
-      const woopInput: Record<string, { obstacle: string; action: string }> = {};
-      top3Values.forEach((v) => {
-        const w = woop[v.id];
-        if (w) {
-          woopInput[v.id] = {
-            obstacle: w.obstacle,
-            action: w.plan, // Note: store calls it "plan", API expects "action"
+      // Format enriched WOOP data for values card generation
+      const woopData = {
+        language_to_echo: woopSuggestions?.language_to_echo || [],
+        analysis: woopSuggestions?.analysis || [],
+        woop: top3Values.map((v) => {
+          const w = woop[v.id];
+          const suggestion = woopSuggestions?.woop.find(s => s.value_id === v.id);
+          return {
+            value_id: v.id,
+            outcome: w?.outcome || suggestion?.outcome || '',
+            obstacle: w?.obstacle || suggestion?.obstacle || '',
+            obstacle_category: suggestion?.obstacle_category || 'AVOIDANCE',
+            reframe: w?.plan || suggestion?.reframe || '',
           };
-        }
-      });
+        }),
+      };
 
       const response = await fetch('/api/ai/generate-values-card', {
         method: 'POST',
@@ -108,7 +187,7 @@ export default function GoalsPage() {
         body: JSON.stringify({
           values: valuesInput,
           story: transcript,
-          woop: woopInput,
+          woopData,
         }),
       });
 
@@ -233,8 +312,10 @@ export default function GoalsPage() {
             <WOOPValueCard
               valueId={value.id}
               valueName={value.name}
-              storyText={transcript}
-              definition={definitions[value.id]?.definition}
+              woopItem={woopSuggestions?.woop.find(w => w.value_id === value.id)}
+              isLoading={woopLoading}
+              loadingMessage={woopLoading ? 'Analyzing your story...' : undefined}
+              error={woopError}
               savedWoop={woop[value.id]}
               onComplete={handleWoopComplete}
             />

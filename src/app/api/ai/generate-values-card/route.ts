@@ -16,8 +16,44 @@ interface WOOPItem {
   reframe: string;
 }
 
+// ABCD Analysis from Stage 1 of WOOP pipeline
+interface AffectAnalysis {
+  surface: string;
+  deeper: string;
+}
+
+interface BehaviorAnalysis {
+  protective: string;
+  aspirational: string;
+  tell: string;
+}
+
+interface CognitionAnalysis {
+  belief: string;
+  lie: string;
+}
+
+interface DesireAnalysis {
+  hungry_for: string;
+  protecting: string;
+  relief_sought: string;
+}
+
+interface ValueAnalysis {
+  value_id: string;
+  value_name: string;
+  affect: AffectAnalysis;
+  behavior: BehaviorAnalysis;
+  cognition: CognitionAnalysis;
+  desire: DesireAnalysis;
+  wound: string;
+  wince_moment: string;
+  nod_moment: string;
+}
+
 interface WOOPDataInput {
   language_to_echo: string[];
+  analysis?: ValueAnalysis[];  // Full ABCD analysis from Stage 1 (optional for backwards compat)
   woop: WOOPItem[];
 }
 
@@ -353,14 +389,33 @@ function buildUserPrompt(
 ): string {
   const valueNames = values.map((v) => v.name).join(', ');
 
-  return `WOOP INPUT:
-${JSON.stringify(woopData, null, 2)}
+  // Build the WOOP section (always present)
+  const woopSection = `WOOP DATA:
+${JSON.stringify({ language_to_echo: woopData.language_to_echo, woop: woopData.woop }, null, 2)}`;
+
+  // Build the analysis section (if available from 2-stage pipeline)
+  let analysisSection = '';
+  if (woopData.analysis && woopData.analysis.length > 0) {
+    analysisSection = `
+
+DEEP PSYCHOLOGICAL ANALYSIS (use this for richer personalization):
+This ABCD analysis reveals the user's deeper patterns, feelings, behaviors, beliefs, and desires for each value.
+${JSON.stringify(woopData.analysis, null, 2)}
+
+KEY INSIGHTS TO INCORPORATE:
+${woopData.analysis.map(a => `- ${a.value_name}: wound="${a.wound}" | lie="${a.cognition.lie}" | hungry_for="${a.desire.hungry_for}" | tell="${a.behavior.tell}"`).join('\n')}`;
+  }
+
+  return `${woopSection}${analysisSection}
+
+LANGUAGE TO ECHO (use these exact phrases):
+${woopData.language_to_echo.map(l => `- "${l}"`).join('\n')}
 
 STORY: "${story || 'No story provided.'}"
 
 VALUES: ${valueNames} (IDs: ${values.map((v) => v.id).join(', ')})
 
-Generate the Values Card. Return valid JSON only.`;
+Generate the Values Card. Use the ABCD analysis to create deeply personal definitions and commitments. Return valid JSON only.`;
 }
 
 function generateFallback(values: ValueInput[]): ValuesCardResponse {

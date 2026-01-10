@@ -3,29 +3,55 @@ import Anthropic from '@anthropic-ai/sdk';
 
 const client = new Anthropic();
 
+// ============ TYPES ============
+
 interface ValueInput {
   id: string;
   name: string;
 }
 
-// New v11 format
-interface WOOPRequestNew {
+interface WOOPRequest {
   values: ValueInput[];
   story: string;
 }
 
-// Legacy format (for backwards compatibility)
-interface WOOPRequestLegacy {
-  valueName: string;
-  storyText?: string;
-  definition?: string;
+interface AffectAnalysis {
+  surface: string;
+  deeper: string;
 }
 
-// Legacy response format
-interface WOOPResponseLegacy {
-  outcomes: string[];
-  obstacles: string[];
-  actionSuggestions: Record<string, string[]>;
+interface BehaviorAnalysis {
+  protective: string;
+  aspirational: string;
+  tell: string;
+}
+
+interface CognitionAnalysis {
+  belief: string;
+  lie: string;
+}
+
+interface DesireAnalysis {
+  hungry_for: string;
+  protecting: string;
+  relief_sought: string;
+}
+
+interface ValueAnalysis {
+  value_id: string;
+  value_name: string;
+  affect: AffectAnalysis;
+  behavior: BehaviorAnalysis;
+  cognition: CognitionAnalysis;
+  desire: DesireAnalysis;
+  wound: string;
+  wince_moment: string;
+  nod_moment: string;
+}
+
+interface StoryAnalysis {
+  language_to_echo: string[];
+  values_analysis: ValueAnalysis[];
 }
 
 interface WOOPItem {
@@ -38,115 +64,340 @@ interface WOOPItem {
 
 interface WOOPResponse {
   language_to_echo: string[];
+  analysis: ValueAnalysis[];
   woop: WOOPItem[];
 }
 
-// Tool definitions for structured output
-const tools: Anthropic.Tool[] = [
-  {
-    name: 'generate_woop_analysis',
-    description: 'Generate WOOP analysis with obstacles, reframes, and language extraction',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        language_to_echo: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'Exact phrases from user story to echo back (at least 5)',
-        },
-        woop: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              value_id: { type: 'string', description: 'The value ID from the request' },
-              outcome: { type: 'string', description: 'Vivid emotional picture, 10-20 words' },
-              obstacle: { type: 'string', description: 'my [feeling-word] that/of [pattern], 8-15 words' },
-              obstacle_category: {
-                type: 'string',
-                enum: ['AVOIDANCE', 'EXCESS', 'TIMING', 'SELF-PROTECTION', 'IDENTITY'],
-                description: 'Category of obstacle - must use at least 2 different categories across 3 values',
-              },
-              reframe: { type: 'string', description: 'Sticky phrase with rhythm/tension/surprise, 3-8 words' },
-            },
-            required: ['value_id', 'outcome', 'obstacle', 'obstacle_category', 'reframe'],
-          },
-        },
-      },
-      required: ['language_to_echo', 'woop'],
-    },
-  },
-];
+// ============ PROMPTS ============
 
-const SYSTEM_PROMPT = `You generate WOOP (Wish, Outcome, Obstacle, Plan) analysis that captures the emotional truth of someone's relationship with their values.
+const ANALYSIS_SYSTEM_PROMPT = `You are a values psychologist analyzing someone's story to understand their relationship with their core values.
 
-<your_task>
+<abcd_framework>
 For each value, extract:
-1. OUTCOME: What living this value FEELS like (vivid, relational, relief-oriented)
-2. OBSTACLE: The INTERNAL pattern that blocks it (named with their emotional language)
-3. REFRAME: The flip that transforms obstacle into fuel (sticky, 3-8 words)
-4. OBSTACLE_CATEGORY: Which type (for differentiation)
 
-Plus, extract globally:
-5. LANGUAGE_TO_ECHO: Their exact words/phrases to weave into the final card
+**AFFECT** (Feelings)
+What emotions arise when they live or violate this value?
+- Surface emotions (frustration, guilt, pride)
+- Deeper feelings (fear of abandonment, longing for belonging)
 
-The obstacle must pass the WINCE-AND-NOD test: uncomfortable enough to make them wince, accurate enough to make them nod.
-</your_task>
+**BEHAVIOR** (Actions)
+What do they DO when this value is activated or threatened?
+- Protective behaviors (avoiding, hiding, over-controlling)
+- Aspirational behaviors (what they wish they did)
+- Tell behaviors (the subtle signs of the pattern)
 
-<obstacle_categories>
-Assign each value to a DIFFERENT category:
+**COGNITION** (Thoughts)
+What beliefs or narratives drive the pattern?
+- "I'm not the type who..."
+- "If I do X, then Y will happen..."
+- The lie they tell themselves
 
-AVOIDANCE: Dodging discomfort, conflict, judgment, vulnerability
-EXCESS: Overdoing, overcontrolling, overcommitting, perfectionism
-TIMING: Waiting, rushing, delaying, impatience
-SELF-PROTECTION: Hiding, minimizing, deflecting, rationalizing
-IDENTITY: Role constraints, "I'm not the type who...", fear of change
+**DESIRE** (Motivations)
+What are they truly hungry for?
+- What are they protecting?
+- What would fulfillment look like?
+- What relief are they seeking?
+</abcd_framework>
 
-Requirement: 3 values = at least 2 different categories (ideally 3)
-</obstacle_categories>
+<extraction_targets>
+Also extract globally:
 
-<emotional_extraction>
-From their story, find:
+**LANGUAGE_TO_ECHO**: Their exact words and phrases (minimum 5)
+- Vivid verbs ("abandoned," "shelved," "burning out")
+- Specific details ("400 interviews," "leadership changed")
+- Emotional language ("I keep saying yes")
 
-THEIR EXACT WORDS: What phrases do they use? "Abandoned," "shelved," "burning out," "400 interviews"—capture these verbatim for the language_to_echo field.
+And per value:
 
-THEIR WOUND: What's the emotional core beneath the story? Not "waiting for permission" but "the fear that acting alone means I don't belong."
+**WOUND**: The core emotional injury beneath the story
+**TELL**: The specific behavior that reveals the pattern
+**WINCE_MOMENT**: What would be uncomfortable for them to read?
+**NOD_MOMENT**: What would they immediately recognize as true?
+</extraction_targets>
 
-THEIR DESIRE: What are they hungry for? What are they protecting? This fuels the outcome.
+<thin_story_handling>
+If the story is sparse (under 30 words), you must still extract meaningful patterns:
+1. Use the chosen VALUES as signals - why might someone choose these?
+2. Infer likely ABCD patterns from common human experiences
+3. Make educated guesses about wounds and desires
+4. Note that thin stories often indicate AVOIDANCE or SELF-PROTECTION patterns
 
-THEIR TELL: What specific behavior reveals the pattern? This becomes anchor triggers.
-
-THE WINCE: What would be uncomfortable for them to read? That's the obstacle.
-
-THE NOD: What would they immediately recognize as true? That's also the obstacle.
-</emotional_extraction>
-
-<reframe_stickiness>
-A sticky reframe has:
-- RHYTHM: 3-8 words, often with beat/cadence ("Not knowing is the starting line")
-- TENSION: Two ideas in productive conflict ("Depth over volume")
-- SURPRISE: An unexpected word or framing ("My place is with the 400, not the org chart")
-- THEIR LANGUAGE: Uses a word from their story when possible
-
-Test: Would they write this on a sticky note? Would they remember it tomorrow?
-</reframe_stickiness>
+Even "I want to be better" contains signal:
+- Affect: dissatisfaction, hope
+- Behavior: self-criticism (likely), aspiration without specifics
+- Cognition: belief that current self isn't enough
+- Desire: self-acceptance, growth, pride
+</thin_story_handling>
 
 <example input="rich story">
-INPUT:
-VALUES: Integrity, Care, Curiosity
 STORY: "I'm a Coast Guard Command Master Chief doing dissertation research. I had 400 interviews that got shelved when leadership changed. Instead of waiting for permission, I built an AI system to analyze them myself. Waiting for approval was actually abandoning the people who shared their stories."
 
-EXTRACTION:
-- THEIR EXACT WORDS: "400 interviews," "shelved," "waiting for permission," "abandoning," "leadership changed," "built an AI system"
-- THEIR WOUND: Fear that acting without institutional sanction means betraying his identity as a loyal servicemember
-- THEIR DESIRE: To honor the 400 people who trusted him; to matter beyond his role
-- THEIR TELL: Drafting permission requests; pausing when leadership shifts; saying "I should run this by someone"
-- THE WINCE: He knows he's used "waiting for permission" as cover for avoiding risk
-- THE NOD: He already broke the pattern once (built the AI system)—he knows he can
+VALUES: Integrity, Care, Curiosity
 
 OUTPUT:
 {
-  "language_to_echo": ["400 interviews", "shelved", "waiting for permission", "abandoning", "leadership changed", "built an AI system", "shared their stories"],
+  "language_to_echo": [
+    "400 interviews",
+    "shelved",
+    "waiting for permission",
+    "abandoning",
+    "leadership changed",
+    "built an AI system",
+    "shared their stories"
+  ],
+  "values_analysis": [
+    {
+      "value_id": "integrity",
+      "value_name": "Integrity",
+      "affect": {
+        "surface": "frustration with bureaucratic delays",
+        "deeper": "fear that acting without sanction makes him disloyal"
+      },
+      "behavior": {
+        "protective": "drafting permission requests, waiting for approval",
+        "aspirational": "acting decisively when it matters",
+        "tell": "pausing when leadership shifts, saying 'I should run this by someone'"
+      },
+      "cognition": {
+        "belief": "good soldiers wait for orders",
+        "lie": "waiting is the honorable thing to do"
+      },
+      "desire": {
+        "hungry_for": "to be trusted to act without oversight",
+        "protecting": "his identity as a loyal servicemember",
+        "relief_sought": "permission to lead without permission"
+      },
+      "wound": "fear that independent action means betraying the institution he loves",
+      "wince_moment": "he's used 'waiting for permission' as cover for avoiding risk",
+      "nod_moment": "he already broke the pattern once—he built the AI system"
+    },
+    {
+      "value_id": "care",
+      "value_name": "Care",
+      "affect": {
+        "surface": "guilt about the interviews sitting unused",
+        "deeper": "fear of failing the people who trusted him with their stories"
+      },
+      "behavior": {
+        "protective": "letting institutional timelines dictate his actions",
+        "aspirational": "honoring trust even when it's inconvenient",
+        "tell": "mentioning the specific number—400—showing he counts them"
+      },
+      "cognition": {
+        "belief": "caring means keeping my word",
+        "lie": "the institution will eventually do right by them"
+      },
+      "desire": {
+        "hungry_for": "to be someone who doesn't let people down",
+        "protecting": "his self-image as someone who honors trust",
+        "relief_sought": "knowing the stories were worth sharing"
+      },
+      "wound": "the gap between his intentions and his impact",
+      "wince_moment": "'shelved' is his word—he knows what it means to be archived",
+      "nod_moment": "he called inaction 'abandoning'—he knows the stakes"
+    },
+    {
+      "value_id": "curiosity",
+      "value_name": "Curiosity",
+      "affect": {
+        "surface": "excitement about building the AI system",
+        "deeper": "fear that creating without credentials makes him an imposter"
+      },
+      "behavior": {
+        "protective": "framing innovation as 'just solving a problem'",
+        "aspirational": "building what doesn't exist yet",
+        "tell": "he built an AI system—not waited for one"
+      },
+      "cognition": {
+        "belief": "real experts are given permission to innovate",
+        "lie": "I'm not really a builder, I just had to do something"
+      },
+      "desire": {
+        "hungry_for": "to create without apology",
+        "protecting": "his credibility in traditional structures",
+        "relief_sought": "validation that building was the right call"
+      },
+      "wound": "imposter fear around being a builder in uniform",
+      "wince_moment": "he downplays the AI as necessity, not identity",
+      "nod_moment": "he's already proven he can build—he just hasn't claimed it"
+    }
+  ]
+}
+</example>
+
+<example input="thin story">
+STORY: "I keep saying yes to everything and burning out."
+
+VALUES: Growth, Balance, Connection
+
+OUTPUT:
+{
+  "language_to_echo": [
+    "saying yes to everything",
+    "burning out"
+  ],
+  "values_analysis": [
+    {
+      "value_id": "growth",
+      "value_name": "Growth",
+      "affect": {
+        "surface": "exhaustion, overwhelm",
+        "deeper": "fear that slowing down means falling behind"
+      },
+      "behavior": {
+        "protective": "automatic yes before thinking, filling every gap",
+        "aspirational": "choosing depth over breadth",
+        "tell": "overloaded calendar, skipped meals, 'I'll sleep when...'"
+      },
+      "cognition": {
+        "belief": "busyness proves my worth",
+        "lie": "I can handle one more thing"
+      },
+      "desire": {
+        "hungry_for": "feeling real progress, not just motion",
+        "protecting": "sense of being valuable and needed",
+        "relief_sought": "permission to do less, better"
+      },
+      "wound": "belief that availability equals value",
+      "wince_moment": "'yes' is often self-protection disguised as generosity",
+      "nod_moment": "they named the pattern themselves—they're ready to change"
+    },
+    {
+      "value_id": "balance",
+      "value_name": "Balance",
+      "affect": {
+        "surface": "frustration at constant demands",
+        "deeper": "guilt about wanting rest while others need them"
+      },
+      "behavior": {
+        "protective": "postponing self-care until 'after this one thing'",
+        "aspirational": "resting without earning it first",
+        "tell": "canceling plans for myself, keeping plans for others"
+      },
+      "cognition": {
+        "belief": "balance is for people with less responsibility",
+        "lie": "I'll restore balance once things calm down"
+      },
+      "desire": {
+        "hungry_for": "rest without guilt",
+        "protecting": "identity as someone who shows up",
+        "relief_sought": "believing I deserve rest"
+      },
+      "wound": "never learned that rest is productive",
+      "wince_moment": "waiting for permission to stop",
+      "nod_moment": "'burning out' means they know the cost"
+    },
+    {
+      "value_id": "connection",
+      "value_name": "Connection",
+      "affect": {
+        "surface": "loneliness despite busyness",
+        "deeper": "fear that saying no costs relationships"
+      },
+      "behavior": {
+        "protective": "performing availability to stay close",
+        "aspirational": "being present instead of just present",
+        "tell": "half-listening, mind on next task"
+      },
+      "cognition": {
+        "belief": "I'm only valuable to others when I'm useful",
+        "lie": "helping is connecting"
+      },
+      "desire": {
+        "hungry_for": "relationships that don't depend on my utility",
+        "protecting": "fear of being forgotten if they slow down",
+        "relief_sought": "being loved for who I am, not what I do"
+      },
+      "wound": "conflating usefulness with lovability",
+      "wince_moment": "the people they're 'connecting' with barely know them",
+      "nod_moment": "they chose Connection as a value—they feel the gap"
+    }
+  ]
+}
+</example>
+
+Use the story_analysis tool. Analyze deeply—Stage 2 quality depends entirely on the richness of this extraction.`;
+
+const WOOP_SYSTEM_PROMPT = `You generate WOOP statements that make people wince AND nod—uncomfortable enough to land, accurate enough to resonate.
+
+<input_context>
+You receive deep ABCD analysis for each value:
+- AFFECT: Their feelings (surface and deeper)
+- BEHAVIOR: Their patterns (protective, aspirational, tells)
+- COGNITION: Their beliefs and the lies they tell themselves
+- DESIRE: What they're hungry for, protecting, seeking relief from
+- WOUND: Core emotional injury
+- WINCE/NOD: The uncomfortable truth they'd recognize
+
+Plus LANGUAGE_TO_ECHO: Their exact phrases to weave into outputs.
+</input_context>
+
+<woop_generation_rules>
+
+**OUTCOME** (10-20 words)
+- Speaks directly to their DESIRE (hungry_for + relief_sought)
+- Vivid, emotional, relational—shows what living this value FEELS like
+- Uses their language when possible
+- Starts with "I" and is in present tense
+
+**OBSTACLE** (8-15 words)
+- MUST start with "my [feeling-word]..."
+- Names their AFFECT (the deeper feeling, not surface)
+- Includes pattern from BEHAVIOR or COGNITION
+- Must pass wince-and-nod test
+- Format: "my [feeling] that/of [pattern]"
+
+**OBSTACLE_CATEGORY**
+Assign each value a DIFFERENT category:
+- AVOIDANCE: Dodging discomfort, conflict, vulnerability
+- EXCESS: Overdoing, overcontrolling, perfectionism
+- TIMING: Waiting, rushing, delaying
+- SELF-PROTECTION: Hiding, minimizing, deflecting
+- IDENTITY: Role constraints, "I'm not the type who..."
+
+REQUIREMENT: 3 values = at least 2 different categories (ideally 3)
+
+**REFRAME** (3-8 words)
+- Flips their protective BEHAVIOR into fuel
+- Uses their LANGUAGE when possible
+- Has RHYTHM (beats, cadence)
+- Has TENSION (two ideas in productive conflict)
+- Has SURPRISE (unexpected word or framing)
+- Test: Would they write this on a sticky note? Remember it tomorrow?
+
+</woop_generation_rules>
+
+<quality_gate>
+Before returning, verify each value passes:
+- OUTCOME speaks to their specific DESIRE, not generic aspiration
+- OBSTACLE names a FEELING (fear, guilt, belief), not just a behavior
+- OBSTACLE would make them wince (uncomfortable) AND nod (true)
+- REFRAME is sticky: rhythm + tension + surprise
+- REFRAME uses their language or flips their behavior
+
+And across all values:
+- At least 2 different OBSTACLE_CATEGORIES used
+- LANGUAGE_TO_ECHO phrases appear naturally in outputs
+</quality_gate>
+
+<example>
+INPUT ANALYSIS (abbreviated):
+{
+  "language_to_echo": ["400 interviews", "shelved", "waiting for permission", "abandoning"],
+  "values_analysis": [
+    {
+      "value_id": "integrity",
+      "affect": { "deeper": "fear that acting without sanction makes him disloyal" },
+      "behavior": { "protective": "waiting for approval", "aspirational": "acting decisively" },
+      "cognition": { "lie": "waiting is the honorable thing to do" },
+      "desire": { "hungry_for": "to be trusted to act without oversight", "relief_sought": "permission to lead without permission" },
+      "wince_moment": "he's used 'waiting for permission' as cover for avoiding risk"
+    }
+  ]
+}
+
+OUTPUT:
+{
   "woop": [
     {
       "value_id": "integrity",
@@ -154,349 +405,311 @@ OUTPUT:
       "obstacle": "my fear that acting without approval means I've abandoned my place in the institution I love",
       "obstacle_category": "IDENTITY",
       "reframe": "My place is with the 400"
-    },
-    {
-      "value_id": "care",
-      "outcome": "The people who trusted me see their voices carried forward, not archived and forgotten",
-      "obstacle": "my habit of letting 'shelved' become 'forgotten'—treating institutional time as more real than human trust",
-      "obstacle_category": "TIMING",
-      "reframe": "Shelved is not safe"
-    },
-    {
-      "value_id": "curiosity",
-      "outcome": "I build what doesn't exist yet and feel more alive than when I follow the playbook",
-      "obstacle": "my pattern of hiding behind 'I don't know how' as permission to stay still",
-      "obstacle_category": "SELF-PROTECTION",
-      "reframe": "Not knowing is the starting line"
     }
   ]
 }
+
+WHY IT WORKS:
+- Outcome: Speaks to "trusted to act without oversight" + "permission to lead"
+- Obstacle: Names the deeper fear, includes wince moment (abandoned)
+- Category: IDENTITY (protecting his role as loyal servicemember)
+- Reframe: Uses "400" from their language, creates tension (place = belonging vs. duty)
 </example>
 
-<example input="thin story">
-INPUT:
-VALUES: Growth, Balance, Connection
-STORY: "I keep saying yes to everything and burning out."
+Use the generate_woop tool. Every output should pass the wince-and-nod test.`;
 
-EXTRACTION:
-- THEIR EXACT WORDS: "saying yes to everything," "burning out"
-- THEIR WOUND: Fear that setting limits means being less valuable/lovable
-- THEIR DESIRE: To feel sustainable; to be valued for quality not availability
-- THEIR TELL: Automatic "yes" before thinking; overloaded calendar; skipped meals/rest
-- THE WINCE: They know "yes" is often self-protection disguised as generosity
-- THE NOD: They named the pattern themselves—they're ready to change
+// ============ TOOLS ============
 
-OUTPUT:
-{
-  "language_to_echo": ["saying yes to everything", "burning out"],
-  "woop": [
-    {
-      "value_id": "growth",
-      "outcome": "I finish fewer things but finish them proud—and feel real progress, not just motion",
-      "obstacle": "my belief that busyness proves my worth—that slowing down means falling behind",
-      "obstacle_category": "EXCESS",
-      "reframe": "Depth is the shortcut"
+const analysisTools: Anthropic.Tool[] = [
+  {
+    name: 'story_analysis',
+    description: 'Deep ABCD analysis of story for each value',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        language_to_echo: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Exact phrases from story (minimum 2, aim for 5+)',
+        },
+        values_analysis: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              value_id: { type: 'string' },
+              value_name: { type: 'string' },
+              affect: {
+                type: 'object',
+                properties: {
+                  surface: { type: 'string' },
+                  deeper: { type: 'string' },
+                },
+                required: ['surface', 'deeper'],
+              },
+              behavior: {
+                type: 'object',
+                properties: {
+                  protective: { type: 'string' },
+                  aspirational: { type: 'string' },
+                  tell: { type: 'string' },
+                },
+                required: ['protective', 'aspirational', 'tell'],
+              },
+              cognition: {
+                type: 'object',
+                properties: {
+                  belief: { type: 'string' },
+                  lie: { type: 'string' },
+                },
+                required: ['belief', 'lie'],
+              },
+              desire: {
+                type: 'object',
+                properties: {
+                  hungry_for: { type: 'string' },
+                  protecting: { type: 'string' },
+                  relief_sought: { type: 'string' },
+                },
+                required: ['hungry_for', 'protecting', 'relief_sought'],
+              },
+              wound: { type: 'string' },
+              wince_moment: { type: 'string' },
+              nod_moment: { type: 'string' },
+            },
+            required: ['value_id', 'value_name', 'affect', 'behavior', 'cognition', 'desire', 'wound', 'wince_moment', 'nod_moment'],
+          },
+        },
+      },
+      required: ['language_to_echo', 'values_analysis'],
     },
-    {
-      "value_id": "balance",
-      "outcome": "I rest without earning it first, and return sharper than when I left",
-      "obstacle": "my guilt about stopping before everything is handled—as if my needs are the lowest priority",
-      "obstacle_category": "SELF-PROTECTION",
-      "reframe": "Rest is not the reward"
+  },
+];
+
+const woopTools: Anthropic.Tool[] = [
+  {
+    name: 'generate_woop',
+    description: 'Generate WOOP statements from ABCD analysis',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        woop: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              value_id: { type: 'string' },
+              outcome: { type: 'string', description: '10-20 words, speaks to desire, starts with I' },
+              obstacle: { type: 'string', description: 'Starts with "my [feeling]...", 8-15 words' },
+              obstacle_category: {
+                type: 'string',
+                enum: ['AVOIDANCE', 'EXCESS', 'TIMING', 'SELF-PROTECTION', 'IDENTITY'],
+              },
+              reframe: { type: 'string', description: '3-8 words, rhythm + tension + surprise' },
+            },
+            required: ['value_id', 'outcome', 'obstacle', 'obstacle_category', 'reframe'],
+          },
+        },
+      },
+      required: ['woop'],
     },
-    {
-      "value_id": "connection",
-      "outcome": "The people I love get my presence, not my performance—and trust me more for it",
-      "obstacle": "my fear that 'no' will cost me relationships—that I'm only valuable when I'm available",
-      "obstacle_category": "IDENTITY",
-      "reframe": "No is how I stay"
-    }
-  ]
-}
-</example>
+  },
+];
 
-<quality_gate>
-PRIORITY ORDER (fix these first):
-1. WINCE-AND-NOD: Does each obstacle make them uncomfortable AND ring true?
-2. THEIR WORDS: Did you capture their exact language in language_to_echo?
-3. CATEGORY DIVERSITY: At least 2 different obstacle categories?
-4. STICKY REFRAMES: Rhythm + tension + surprise? Would they remember tomorrow?
-5. FEELING-FIRST OBSTACLES: Does each obstacle name a FEELING (fear, guilt, habit, belief), not just a behavior?
-</quality_gate>
+// ============ HELPERS ============
 
-<rules>
-1. EXTRACT language_to_echo FIRST. This is the foundation.
-2. OBSTACLES name FEELINGS, not just behaviors.
-3. CATEGORY DIVERSITY is mandatory.
-4. REFRAMES must be sticky: rhythm, tension, surprise.
-5. WINCE-AND-NOD: If it's comfortable, it's wrong. If they'd argue with it, it's also wrong.
-</rules>
-
-Use the generate_woop_analysis tool to provide structured output.`;
-
-function buildUserPrompt(values: ValueInput[], story: string): string {
+function buildAnalysisUserPrompt(values: ValueInput[], story: string): string {
   const valueList = values.map(v => `${v.name} (id: ${v.id})`).join(', ');
-
-  return `Generate WOOP analysis for these values:
+  return `Analyze this story for the following values:
 
 VALUES: ${valueList}
 
-STORY: "${story || 'No story provided.'}"
+STORY: "${story || 'No story provided. Infer patterns from the chosen values.'}"
 
-Extract their language, identify obstacles with category diversity, and create sticky reframes.
-
-Use the generate_woop_analysis tool.`;
+Extract ABCD analysis for each value. Use the story_analysis tool.`;
 }
 
-function generateFallbackWOOP(values: ValueInput[]): WOOPResponse {
-  const categories: Array<'AVOIDANCE' | 'EXCESS' | 'TIMING' | 'SELF-PROTECTION' | 'IDENTITY'> =
-    ['AVOIDANCE', 'EXCESS', 'TIMING', 'SELF-PROTECTION', 'IDENTITY'];
+function buildWoopUserPrompt(analysis: StoryAnalysis): string {
+  return `Generate WOOP statements based on this analysis:
+
+${JSON.stringify(analysis, null, 2)}
+
+Create outcome, obstacle, category, and reframe for each value. Use the generate_woop tool.`;
+}
+
+function extractToolUse<T>(response: Anthropic.Message, toolName: string): T | null {
+  const toolUseBlock = response.content.find(
+    (block): block is Anthropic.ToolUseBlock =>
+      block.type === 'tool_use' && block.name === toolName
+  );
+  return toolUseBlock ? (toolUseBlock.input as T) : null;
+}
+
+function validateAnalysis(analysis: StoryAnalysis | null, values: ValueInput[]): boolean {
+  if (!analysis) return false;
+  if (!analysis.language_to_echo || analysis.language_to_echo.length === 0) return false;
+  if (!analysis.values_analysis || analysis.values_analysis.length !== values.length) return false;
+  return analysis.values_analysis.every(v =>
+    v.affect?.deeper && v.behavior?.protective && v.desire?.hungry_for
+  );
+}
+
+function validateWoop(woop: { woop: WOOPItem[] } | null, values: ValueInput[]): boolean {
+  if (!woop?.woop) return false;
+  if (woop.woop.length !== values.length) return false;
+  return woop.woop.every(w =>
+    w.outcome && w.obstacle && w.obstacle_category && w.reframe
+  );
+}
+
+// ============ FALLBACKS ============
+
+function generateFallbackAnalysis(values: ValueInput[], story: string): StoryAnalysis {
+  // Extract any phrases from story
+  const words = (story || '').split(/\s+/).filter(w => w.length > 4);
+  const language = words.slice(0, 5);
 
   return {
-    language_to_echo: [],
-    woop: values.map((v, i) => ({
+    language_to_echo: language.length > 0 ? language : ['growth', 'change'],
+    values_analysis: values.map(v => ({
       value_id: v.id,
-      outcome: `I live ${v.name.toLowerCase()} fully and feel aligned with who I want to be`,
-      obstacle: `my fear of discomfort that keeps me from fully committing to ${v.name.toLowerCase()}`,
-      obstacle_category: categories[i % categories.length],
-      reframe: 'Discomfort is the door',
+      value_name: v.name,
+      affect: {
+        surface: 'frustration with current patterns',
+        deeper: `fear of not living ${v.name.toLowerCase()} fully`,
+      },
+      behavior: {
+        protective: 'staying in comfortable routines',
+        aspirational: `embodying ${v.name.toLowerCase()} daily`,
+        tell: 'moments of hesitation before acting',
+      },
+      cognition: {
+        belief: 'change is hard',
+        lie: "I'll start when conditions are right",
+      },
+      desire: {
+        hungry_for: `living ${v.name.toLowerCase()} without compromise`,
+        protecting: 'sense of safety and predictability',
+        relief_sought: 'alignment between values and actions',
+      },
+      wound: 'gap between who I am and who I want to be',
+      wince_moment: 'knowing I could do more but choosing comfort',
+      nod_moment: 'I chose this value because I feel the gap',
     })),
   };
 }
 
-// Generate legacy fallback for backwards compatibility
-function generateFallbackLegacy(valueName: string): WOOPResponseLegacy {
-  const lowerName = valueName.toLowerCase();
-
-  const outcomes = [
-    `Feel authentic and aligned with ${lowerName} in all decisions`,
-    `Experience deeper, more meaningful relationships through ${lowerName}`,
-    `Wake up feeling proud of how I live ${lowerName} daily`,
+function generateFallbackWoop(analysis: StoryAnalysis): WOOPItem[] {
+  const categories: Array<WOOPItem['obstacle_category']> = [
+    'AVOIDANCE', 'TIMING', 'SELF-PROTECTION', 'EXCESS', 'IDENTITY'
   ];
 
-  const obstacles = [
-    'Fear of being judged',
-    'Desire to avoid discomfort',
-    'Old habits and patterns',
-    'Self-doubt in difficult moments',
-  ];
-
-  const actionSuggestions: Record<string, string[]> = {
-    'Fear of being judged': [
-      'take a breath and speak my truth anyway',
-      'remember that authenticity matters more than approval',
-    ],
-    'Desire to avoid discomfort': [
-      'sit with the discomfort as growth',
-      'remind myself that short-term ease often leads to long-term regret',
-    ],
-    'Old habits and patterns': [
-      'pause before reacting and choose consciously',
-      'ask: what would my best self do here?',
-    ],
-    'Self-doubt in difficult moments': [
-      'recall a time I successfully lived this value',
-      'trust my values over my fears',
-    ],
-  };
-
-  return { outcomes, obstacles, actionSuggestions };
+  return analysis.values_analysis.map((a, i) => ({
+    value_id: a.value_id,
+    outcome: a.desire.relief_sought || `I live ${a.value_name.toLowerCase()} fully and feel aligned`,
+    obstacle: `my ${a.affect.deeper || 'fear'} that keeps me from ${a.behavior.aspirational || 'moving forward'}`,
+    obstacle_category: categories[i % categories.length],
+    reframe: 'The obstacle is the way',
+  }));
 }
 
-// Transform v11 response to legacy format
-function transformToLegacy(woopResponse: WOOPResponse, valueName: string): WOOPResponseLegacy {
-  const woopItem = woopResponse.woop[0];
-
-  // Generate varied outcomes based on the single value
-  const outcomes = [
-    woopItem?.outcome || `Live ${valueName.toLowerCase()} fully`,
-    `Feel aligned and authentic when choosing ${valueName.toLowerCase()}`,
-    `Experience the freedom that comes from living ${valueName.toLowerCase()}`,
-  ];
-
-  // Generate obstacles from the single woop item
-  const obstacles = [
-    woopItem?.obstacle || 'Fear of being judged',
-    'Desire to avoid discomfort',
-    'Old habits and patterns',
-    'Self-doubt in difficult moments',
-  ];
-
-  // Generate action suggestions for each obstacle
-  const actionSuggestions: Record<string, string[]> = {};
-  obstacles.forEach((obstacle, i) => {
-    if (i === 0 && woopItem?.reframe) {
-      actionSuggestions[obstacle] = [
-        woopItem.reframe,
-        'pause and reconnect with what matters',
-      ];
-    } else {
-      actionSuggestions[obstacle] = [
-        'pause and reconnect with what matters',
-        'remember why this value is important to me',
-      ];
-    }
-  });
-
-  return { outcomes, obstacles, actionSuggestions };
-}
-
-// Check if request is legacy format
-function isLegacyRequest(body: unknown): body is WOOPRequestLegacy {
-  return typeof body === 'object' && body !== null && 'valueName' in body;
-}
+// ============ MAIN HANDLER ============
 
 export async function POST(request: Request) {
-  let requestValues: ValueInput[] = [];
-  let isLegacy = false;
-  let legacyValueName = '';
-
   try {
-    const body = await request.json();
+    const { values, story } = (await request.json()) as WOOPRequest;
 
-    // Detect legacy format
-    if (isLegacyRequest(body)) {
-      isLegacy = true;
-      legacyValueName = body.valueName;
-
-      if (!body.valueName) {
-        return NextResponse.json(
-          { error: 'Value name is required' },
-          { status: 400 }
-        );
-      }
-
-      // Convert legacy to new format
-      requestValues = [{
-        id: body.valueName.toLowerCase().replace(/\s+/g, '_'),
-        name: body.valueName,
-      }];
-
-      // Check for API key - return legacy fallback
-      if (!process.env.ANTHROPIC_API_KEY) {
-        console.warn('No ANTHROPIC_API_KEY found, using fallback WOOP');
-        return NextResponse.json({
-          ...generateFallbackLegacy(body.valueName),
-          fallback: true,
-        });
-      }
-
-      // Call API with converted format
-      const response = await client.messages.create({
-        model: 'claude-sonnet-4-5-20250514',
-        max_tokens: 1000,
-        temperature: 0.7,
-        tools,
-        system: SYSTEM_PROMPT,
-        messages: [
-          {
-            role: 'user',
-            content: buildUserPrompt(requestValues, body.storyText || ''),
-          },
-        ],
-      });
-
-      // Extract tool_use block
-      const toolUseBlock = response.content.find(
-        (block): block is Anthropic.ToolUseBlock => block.type === 'tool_use'
-      );
-
-      if (toolUseBlock && toolUseBlock.name === 'generate_woop_analysis') {
-        const input = toolUseBlock.input as {
-          language_to_echo: string[];
-          woop: WOOPItem[];
-        };
-
-        // Transform to legacy format
-        const legacyResponse = transformToLegacy(
-          { language_to_echo: input.language_to_echo, woop: input.woop },
-          body.valueName
-        );
-        return NextResponse.json(legacyResponse);
-      }
-
-      // Fallback if no tool use
-      return NextResponse.json({
-        ...generateFallbackLegacy(body.valueName),
-        fallback: true,
-      });
-    }
-
-    // New v11 format
-    const { values, story } = body as WOOPRequestNew;
-    requestValues = values || [];
-
+    // Validate request
     if (!values || values.length === 0) {
-      return NextResponse.json(
-        { error: 'Values are required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Values are required' }, { status: 400 });
     }
 
     // Check for API key
     if (!process.env.ANTHROPIC_API_KEY) {
-      console.warn('No ANTHROPIC_API_KEY found, using fallback WOOP');
+      console.warn('[WOOP] No ANTHROPIC_API_KEY, using fallback');
+      const fallbackAnalysis = generateFallbackAnalysis(values, story || '');
       return NextResponse.json({
-        ...generateFallbackWOOP(values),
+        language_to_echo: fallbackAnalysis.language_to_echo,
+        analysis: fallbackAnalysis.values_analysis,
+        woop: generateFallbackWoop(fallbackAnalysis),
         fallback: true,
       });
     }
 
-    // Call Anthropic API with tools
-    const response = await client.messages.create({
+    // ====== STAGE 1: Deep Analysis ======
+    console.log('[WOOP] Stage 1: Analyzing story...');
+
+    const analysisResponse = await client.messages.create({
+      model: 'claude-sonnet-4-5-20250514',
+      max_tokens: 2000,
+      temperature: 0.5,
+      tools: analysisTools,
+      tool_choice: { type: 'tool', name: 'story_analysis' },
+      system: ANALYSIS_SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: buildAnalysisUserPrompt(values, story) }],
+    });
+
+    let analysis = extractToolUse<StoryAnalysis>(analysisResponse, 'story_analysis');
+
+    // Validate Stage 1 output
+    if (!validateAnalysis(analysis, values)) {
+      console.warn('[WOOP] Stage 1 validation failed, using fallback analysis');
+      analysis = generateFallbackAnalysis(values, story || '');
+    }
+
+    console.log('[WOOP] Stage 1 complete. Language captured:', analysis!.language_to_echo);
+
+    // ====== STAGE 2: WOOP Generation ======
+    console.log('[WOOP] Stage 2: Generating WOOP statements...');
+
+    const woopResponse = await client.messages.create({
       model: 'claude-sonnet-4-5-20250514',
       max_tokens: 1000,
       temperature: 0.7,
-      tools,
-      system: SYSTEM_PROMPT,
-      messages: [
-        {
-          role: 'user',
-          content: buildUserPrompt(values, story),
-        },
-      ],
+      tools: woopTools,
+      tool_choice: { type: 'tool', name: 'generate_woop' },
+      system: WOOP_SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: buildWoopUserPrompt(analysis!) }],
     });
 
-    // Extract tool_use block from response
-    const toolUseBlock = response.content.find(
-      (block): block is Anthropic.ToolUseBlock => block.type === 'tool_use'
-    );
+    let woopResult = extractToolUse<{ woop: WOOPItem[] }>(woopResponse, 'generate_woop');
 
-    if (toolUseBlock && toolUseBlock.name === 'generate_woop_analysis') {
-      const input = toolUseBlock.input as {
-        language_to_echo: string[];
-        woop: WOOPItem[];
-      };
-
-      return NextResponse.json({
-        language_to_echo: input.language_to_echo,
-        woop: input.woop,
-      });
+    // Validate Stage 2 output
+    if (!validateWoop(woopResult, values)) {
+      console.warn('[WOOP] Stage 2 validation failed, using fallback WOOP');
+      woopResult = { woop: generateFallbackWoop(analysis!) };
     }
 
-    // Fallback if no tool use
+    console.log('[WOOP] Stage 2 complete. Categories:', woopResult!.woop.map(w => w.obstacle_category));
+
+    // Return complete response
     return NextResponse.json({
-      ...generateFallbackWOOP(values),
-      fallback: true,
-    });
+      language_to_echo: analysis!.language_to_echo,
+      analysis: analysis!.values_analysis,
+      woop: woopResult!.woop,
+    } as WOOPResponse);
+
   } catch (error) {
-    console.error('WOOP generation error:', error);
+    console.error('[WOOP] Pipeline error:', error);
 
-    // Return appropriate fallback based on format
-    if (isLegacy && legacyValueName) {
-      return NextResponse.json({
-        ...generateFallbackLegacy(legacyValueName),
-        fallback: true,
-        error: 'AI generation failed, using fallback suggestions',
-      });
-    }
+    // Try to get values from request for fallback
+    try {
+      const body = await request.clone().json();
+      const values = body.values || [];
+      const story = body.story || '';
 
-    if (requestValues.length > 0) {
-      return NextResponse.json({
-        ...generateFallbackWOOP(requestValues),
-        fallback: true,
-        error: 'AI generation failed, using fallback suggestions',
-      });
+      if (values.length > 0) {
+        const fallbackAnalysis = generateFallbackAnalysis(values, story);
+        return NextResponse.json({
+          language_to_echo: fallbackAnalysis.language_to_echo,
+          analysis: fallbackAnalysis.values_analysis,
+          woop: generateFallbackWoop(fallbackAnalysis),
+          fallback: true,
+          error: 'Pipeline failed, using fallback',
+        });
+      }
+    } catch {
+      // Ignore parse error
     }
 
     return NextResponse.json(
