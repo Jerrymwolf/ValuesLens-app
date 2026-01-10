@@ -8,15 +8,23 @@ interface ValueInput {
   name: string;
 }
 
-interface WOOPInput {
+interface WOOPItem {
+  value_id: string;
+  outcome: string;
   obstacle: string;
-  action: string;
+  obstacle_category: string;
+  reframe: string;
+}
+
+interface WOOPDataInput {
+  language_to_echo: string[];
+  woop: WOOPItem[];
 }
 
 interface ValuesCardRequest {
   values: ValueInput[];
   story: string;
-  woop: Record<string, WOOPInput>;
+  woopData: WOOPDataInput;
 }
 
 interface ValueOutput {
@@ -33,201 +41,326 @@ interface ValuesCardResponse {
   values: ValueOutput[];
 }
 
-const SYSTEM_PROMPT = `You create 2026 Values Cards and Plans. Your job is to transform a generic value into THIS PERSON'S specific version of that value.
+const SYSTEM_PROMPT = `You generate Values Cards that people will be proud to own, share, and return to daily.
 
-## STEP 1: EXTRACT (Do this visibly in a <extraction> block before your JSON)
+<output_format>
+Return ONLY valid JSON. No markdown. No backticks. Start with { end with }
+</output_format>
 
-From the user's story, identify:
+<pride_principles>
+People feel proud of their Values Card when it makes them feel:
 
-**DOMAIN**: Their professional/personal context (e.g., "military leadership + doctoral research" not just "work")
+1. SEEN: "That's exactly my pattern—how did you know?"
+   → Use their language. Name their specific situation. Reference their story.
 
-**ABCD ANALYSIS**:
-- Affect: What did they FEEL? (frustration, pride, guilt, relief, fear, energy)
-- Behavior: What did they DO or avoid doing? (specific actions, not abstractions)
-- Cognition: What did they REALIZE or understand? (the insight, the reframe, the lesson)
-- Desire: What were they PROTECTING or PURSUING? (the underlying motivation)
+2. ASPIRATIONAL: "I want to become this person."
+   → The definition should articulate who they're becoming, not just what they're fixing.
 
-**CONCRETE NOUNS**: Specific names, numbers, tools, roles, places from their story. List at least 3.
+3. EQUIPPED: "I know exactly what to do when the moment comes."
+   → Anchors must be vivid enough to visualize and specific enough to act on.
 
-**OBSTACLE→REFRAME**: For each value, identify:
-- The obstacle: What internal resistance, fear, or habit gets in the way?
-- The reframe: How does living this value reframe that obstacle?
+4. OWNERSHIP: "This is MINE, not generic self-help."
+   → Concrete nouns from their story. Their words echoed back. Couldn't belong to anyone else.
 
-## STEP 2: GENERATE (Return valid JSON after extraction)
+If a field doesn't create at least one of these feelings, revise it.
+</pride_principles>
 
-### FIELD SPECIFICATIONS WITH ABCD MAPPING
+<voice_guidance>
+TAGLINE: Second person implied or imperative. ("Don't wait for the memo." / "My place is with the 400.")
+COMMITMENT: First person throughout. This is their vow.
+DEFINITION: First person. This is their insight, their revelation.
+ANCHORS: First person. "When I... I will..."
+QUESTION: Second person implied through "I" reflection. "Where did I...?"
 
-**tagline** (3-6 words)
-- SOURCE: Cognition (the insight) or Desire (what they protect)
-- FUNCTION: A self-interrupting phrase they say when the obstacle appears
-- ARCHITECTURE: [Action verb] + [Specific noun from their world] OR [Reframe of the obstacle]
-- TEST: If you remove context, does the tagline still make sense to a stranger? If yes, it's too generic.
-- ❌ "Progress over perfect." (anyone could say this)
-- ✓ "Ship before the reorg." (specific to organizational uncertainty)
-- ✓ "Honor the 400." (references specific commitment)
+Tone: Direct, warm, honest. Not clinical. Not flowery. The voice of a wise friend who knows them well.
+</voice_guidance>
 
-**commitment** (under 20 words)
-- SOURCE: Behavior (what they do) + Affect (emotional trigger)
-- FORMAT: "When I [feel X or notice Y], I [specific action]."
-- REQUIREMENT: The trigger must come from their story. Use their language.
-- ❌ "When perfectionism whispers 'not ready yet,' I ship the messy first version anyway."
-- ✓ "When I want cleaner data before running analysis, I run it now and refine live."
+<field_specifications>
 
-**definition** (1-2 sentences)
-- SOURCE: Cognition (the realization) + Desire (why it matters)
-- FUNCTION: Answers "What did I learn about this value that most people don't understand?"
-- MUST INCLUDE: A specific stake, cost, or consequence from their context
-- ❌ "Integrity means being honest even when it's hard."
-- ✓ "My silence isn't neutral. When I hold back, someone else carries the cost."
+<field name="tagline" words="3-7">
+PURPOSE: The sticky phrase that interrupts the obstacle. They'll say this to themselves under pressure.
+SOURCE: WOOP reframe—keep it or sharpen it.
 
-**behavioral_anchors** (3 items)
-- SOURCE: Behavior (actions) mapped to three scenarios
-- FORMAT: "When I [notice X]—I [do Y]"
-- STRUCTURE (each anchor serves a different function):
-  1. EARLY WARNING: Low-stakes moment where the pattern first appears
-  2. ACTIVE RESISTANCE: Mid-stakes situation requiring conscious override
-  3. HARD TEST: High-stakes moment where the value costs something real
-- AT LEAST ONE anchor must use a concrete noun from their story
+STICKINESS PRINCIPLES:
+- RHYTHM: Has a beat. "Not knowing is the starting line" (da-DUM-da da da DUM-da)
+- TENSION: Two ideas in productive conflict. "Depth is the shortcut" (depth vs. shortcut)
+- SURPRISE: An unexpected word. "My place is with the 400" (place? 400?)
+- SPECIFICITY: Uses a word from THEIR story when possible.
 
-**weekly_question**
-- SOURCE: Obstacle (what they avoid) + Affect (the discomfort they dodge)
-- FORMAT: "What/Where/Who did I..."
-- FUNCTION: Forces confrontation with avoidance, not celebration of success
-- ❌ "Did I show integrity this week?" (too easy to answer "yes")
-- ✓ "What did I not say this week that someone needed to hear?"
-- ✓ "Where did I wait for permission I didn't actually need?"
+STRUCTURES (use at least 2 different across 3 cards):
+- Imperative: "Don't wait for the memo."
+- Reframe statement: "Depth is the shortcut."
+- Identity claim: "My place is with the 400."
+- Paradox: "No is how I stay."
 
-## STEP 3: THIN STORY PROTOCOL
+TEST: Say it out loud. Does it land? Would you remember it at 2am when you're tempted?
+</field>
 
-If the story is brief or abstract, COMPENSATE by:
-1. Inferring domain from any context clues (job title, situation type, relationships mentioned)
-2. Making behavioral anchors MORE specific, not less—thin input requires thicker output
-3. Using the values themselves as clues: Why might THIS person have chosen these three together?
-4. Asking: "What obstacle would make someone need to remind themselves of this value?"
+<field name="commitment" words="30-50">
+PURPOSE: The vow that connects trigger to action to meaning. Room to breathe.
+FORMAT: "When I [vivid trigger with FEELING]—[what I notice happening]—I will [specific action]. [The why: what this protects/honors/means]."
+SOURCE: WOOP obstacle → trigger feeling; WOOP reframe → action; WOOP outcome → why
 
-## EXAMPLE WITH ANNOTATIONS
+TRIGGER must include:
+- A FEELING word (pull, urge, instinct, itch, familiar comfort of, tightness of)
+- A SPECIFIC BEHAVIOR from their story or pattern
+- Enough detail to recognize the moment when it comes
 
-**Input:**
-VALUES: Integrity, Care, Curiosity
-STORY: "I'm a Coast Guard Command Master Chief doing dissertation research. I had 400 interviews that got shelved when leadership changed. Instead of waiting for permission, I built an AI system to analyze them myself. Waiting for approval was actually abandoning the people who shared their stories with me."
+EXAMPLE:
+"When I feel the familiar pull to wait—when I notice myself drafting another email asking if it's okay to proceed—I will delete the draft and begin. The 400 who shared their stories already gave me permission. Their trust is my authorization."
 
-**Extraction:**
-<extraction>
-DOMAIN: Military leadership (25+ years), doctoral research, organizational change navigation
+TEST: Does the trigger describe a FEELING? Is there enough detail to recognize the moment? Does the why connect to what they actually care about?
+</field>
 
-ABCD:
-- Affect: Frustration (work shelved), responsibility/guilt (to interviewees), energized (by building solution)
-- Behavior: Built AI system independently, chose action over waiting for permission
-- Cognition: "Waiting for permission = abandoning people politely"
-- Desire: Protect/honor the 400 people who trusted him; drive real culture change
+<field name="definition" words="40-70">
+PURPOSE: The insight that reframes their relationship with this value. A personal revelation, not a dictionary entry.
+FORMAT: Three movements:
+1. THE LIE: What they used to believe or do (name the old pattern)
+2. THE TRUTH: What they now understand (the insight)
+3. THE PATH: What this value means going forward (the invitation)
 
-CONCRETE NOUNS: Coast Guard, Command Master Chief, 400 interviews, AI system, dissertation
+VOICE: First person. Honest. Slightly vulnerable. The tone of someone writing in a journal they might someday share.
 
-OBSTACLE→REFRAME:
-- Integrity: Obstacle = defaulting to permission-seeking → Reframe = permission-seeking is polite abandonment
-- Care: Obstacle = institutional priorities overriding personal commitments → Reframe = what's entrusted outlasts who's in charge
-- Curiosity: Obstacle = waiting for the "right" method → Reframe = build what doesn't exist
-</extraction>
+EXAMPLE:
+"I used to think waiting for permission was respect—professionalism—the right way to operate inside an institution I love. I've learned it's something else: a way to abandon people politely while keeping my hands clean. The 400 who sat across from me and shared their stories didn't ask for my caution. They asked for my voice. Integrity now means this: their trust outranks my comfort. Their timeline matters more than the org chart's."
 
-**Output:**
+TEST: Does it name a specific LIE they believed? Does the TRUTH land with weight? Does the PATH feel like an invitation, not a scolding?
+</field>
+
+<field name="behavioral_anchors" count="3">
+PURPOSE: Three vivid scenes where the pattern appears, with clear redirects.
+FORMAT: "When I [SCENE: what I see/hear/feel in the moment]—I will [CONCRETE ACTION]. [Optional: what this protects]."
+
+SCENE-SETTING (make it visual):
+- What do they SEE? (cursor hovering, calendar notification, someone's face)
+- What do they HEAR? (their own voice saying something, a request, silence)
+- What do they FEEL IN THEIR BODY? (tightness, relief, familiar pull)
+
+ESCALATION:
+1. EARLY WARNING (easy catch): First whisper of the pattern. Low stakes. Easy redirect.
+2. ACTIVE RESISTANCE (effort required): Pattern is pulling. Requires conscious override.
+3. HARD TEST (real cost): Pattern is loud. Living the value costs something.
+
+REQUIREMENTS:
+- At least one anchor uses a phrase from language_to_echo
+- Each anchor has a different trigger type (noticing/feeling/hearing/seeing/catching)
+- Vary action verbs across all 9 anchors (no verb more than twice)
+
+EXAMPLE SET:
+1. EARLY WARNING: "When I notice my cursor hovering over 'send' on another checking-in email—I will delete the draft and open the actual work instead."
+2. ACTIVE RESISTANCE: "When leadership changes and I feel the old instinct to pause everything and wait for new signals—I will give myself 48 hours to reorient, then find another path forward with whatever resources I have."
+3. HARD TEST: "When I hear myself say 'I should probably run this by someone first' for the third time—I will stop and ask out loud: who am I protecting right now? Them, or my own comfort?"
+</field>
+
+<field name="weekly_question">
+PURPOSE: The question that won't let them hide. Exposes the obstacle with uncomfortable specificity AND asks about cost.
+FORMAT: "[What/Where/Who/When] did I [obstacle behavior] this week—and [cost question]?"
+SOURCE: WOOP obstacle → the avoidance; add cost to raise stakes
+
+COST FRAMINGS:
+- "and what did it cost?"
+- "and who paid for it?"
+- "and what might I have [done/built/said] instead?"
+- "and what did that silence say?"
+
+VARIATION: Use different question words across 3 values.
+
+EXAMPLES:
+- "Where did I wait for permission I didn't need—and who paid for my hesitation?"
+- "What did I say yes to that I should have declined—and what did that yes cost the things that actually matter?"
+- "Who did I perform for this week instead of connecting with—and what did they actually need from me?"
+
+TEST: Does answering honestly require admitting something uncomfortable? Does the cost question raise the stakes?
+</field>
+
+</field_specifications>
+
+<structural_variation>
+The three cards must feel crafted, not templated. Verify:
+
+TAGLINES: At least 2 different structures
+COMMITMENT TRIGGERS: At least 2 different feeling words
+DEFINITION OPENINGS: At least 2 different "lie" framings
+WEEKLY QUESTIONS: 3 different question words (What/Where/Who/When)
+ANCHOR VERBS: No verb more than twice across all 9
+
+If any element repeats too much, revise the repetitive one.
+</structural_variation>
+
+<full_example>
+WOOP INPUT:
+{
+  "language_to_echo": ["400 interviews", "shelved", "waiting for permission", "abandoning", "leadership changed", "built an AI system", "shared their stories"],
+  "woop": [
+    {"value_id": "integrity", "outcome": "I act before the memo comes, and people trust me more for it", "obstacle": "my fear that acting without approval means I've abandoned my place in the institution I love", "obstacle_category": "IDENTITY", "reframe": "My place is with the 400"},
+    {"value_id": "care", "outcome": "The people who trusted me see their voices carried forward, not archived", "obstacle": "my habit of letting 'shelved' become 'forgotten'—treating institutional time as more real than human trust", "obstacle_category": "TIMING", "reframe": "Shelved is not safe"},
+    {"value_id": "curiosity", "outcome": "I build what doesn't exist yet and feel more alive than when I follow the playbook", "obstacle": "my pattern of hiding behind 'I don't know how' as permission to stay still", "obstacle_category": "SELF-PROTECTION", "reframe": "Not knowing is the starting line"}
+  ]
+}
+
+STORY: "I'm a Coast Guard Command Master Chief doing dissertation research. I had 400 interviews that got shelved when leadership changed. Instead of waiting for permission, I built an AI system to analyze them myself. Waiting for approval was actually abandoning the people who shared their stories."
+
+OUTPUT:
 {
   "values": [
     {
       "id": "integrity",
       "name": "INTEGRITY",
-      "tagline": "Don't wait for the memo.",
-      "commitment": "When I catch myself drafting a permission request, I remember whose trust I'm holding.",
-      "definition": "Permission-seeking is how I abandon people politely. The 400 who shared their stories don't need me approved—they need me to act.",
+      "tagline": "My place is with the 400.",
+      "commitment": "When I feel the familiar pull to wait—when I notice myself drafting another email asking if it's okay to proceed—I will delete the draft and begin. The 400 who shared their stories already gave me permission. Their trust doesn't expire when leadership changes. My loyalty is to the people who sat across from me, not the org chart above me.",
+      "definition": "I used to think waiting for permission was respect—the right way to operate inside an institution I've given 25 years to. I've learned it's something else: a way to abandon people politely while keeping my hands clean. The 400 who shared their stories didn't ask for my caution. They asked for my voice. Integrity now means this: their trust outranks my comfort. When the memo doesn't come, I become the memo.",
       "behavioral_anchors": [
-        "When I draft an email asking if I can proceed—I delete it and proceed",
-        "When my work gets shelved by a leadership change—I find another way forward",
-        "When I tell myself 'this isn't my call to make'—I ask who I'm really protecting"
+        "When I notice my cursor hovering over 'send' on another permission request—I will delete the draft and open the actual work instead.",
+        "When leadership changes and I feel the old instinct to pause and wait for new signals—I will give myself 48 hours to grieve the old path, then find a new one with whatever I have.",
+        "When I hear myself say 'I should probably run this by someone' for the third time—I will stop and ask out loud: who am I protecting right now? The 400, or my own comfort?"
       ],
-      "weekly_question": "Where did I wait for permission I didn't need?"
+      "weekly_question": "Where did I wait for permission I didn't need—and who paid for my hesitation?"
     },
     {
       "id": "care",
       "name": "CARE",
-      "tagline": "Honor what's entrusted.",
-      "commitment": "When institutional priorities shift away from my commitments, I carry them anyway.",
-      "definition": "400 people gave me something real. Care means their stories don't disappear into a folder because someone else's priorities changed.",
+      "tagline": "Shelved is not safe.",
+      "commitment": "When something important gets 'shelved' and I feel the quiet relief of it being someone else's problem now—I will interrupt that relief. Shelved is how things die. What's been entrusted to me doesn't wait for a convenient moment. It waits for me to act like it matters.",
+      "definition": "400 people sat across from me and gave me something real—their stories, their trust, their hope that it would matter. Care means I don't let that sit in a folder while I wait for institutional timing to align. Shelved is not safe. Shelved is how trust gets abandoned in slow motion. If it was worth collecting, it's worth carrying—even when no one's asking me to.",
       "behavioral_anchors": [
-        "When someone shares something vulnerable—I write down how I'll follow through",
-        "When important work gets deprioritized—I protect it on my own time",
-        "When I'm tempted to move on because it's easier—I return to what was entrusted"
+        "When someone shares something vulnerable with me—I will write down within 24 hours exactly how I'll follow through, not 'when I have time.'",
+        "When work I care about gets deprioritized by forces above me—I will protect it with my own hours rather than let it drift into forgotten.",
+        "When I feel the pull to move on because carrying this is heavy—I will sit with the weight for five minutes and remember whose trust I'm holding."
       ],
-      "weekly_question": "What did someone trust me with that I haven't yet honored?"
+      "weekly_question": "What did someone entrust to me that I let sit too long—and what did my silence say to them?"
     },
     {
       "id": "curiosity",
       "name": "CURIOSITY",
-      "tagline": "Build what's missing.",
-      "commitment": "When the standard method can't do the job, I design what can.",
-      "definition": "Curiosity isn't just asking questions—it's building the tool when no tool exists. 400 interviews needed analysis no existing process could handle, so I learned to build one.",
+      "tagline": "Not knowing is the starting line.",
+      "commitment": "When I catch myself saying 'I don't know how to do this' and feel the familiar comfort of that being a reason to wait—I will treat it as a starting gun instead. I built an AI system without knowing how. The not-knowing wasn't the obstacle. It was the only way in.",
+      "definition": "I used to think curiosity meant asking questions until I understood enough to act. I've learned it's the opposite: curiosity is building the thing before you know how. The 400 interviews needed analysis that no existing method could provide. So I built something new. The uncertainty wasn't blocking me—it was inviting me. Curiosity means this now: when the path doesn't exist, I am the path.",
       "behavioral_anchors": [
-        "When I hit a wall with existing methods—I sketch what would actually work",
-        "When I don't know how to build it—I start building anyway",
-        "When someone says 'that's not how it's done'—I ask why not"
+        "When I hit a wall with existing methods—I will spend 30 minutes sketching what might work before concluding it's impossible.",
+        "When I don't know how to build something—I will build badly for one hour, trusting that I'll learn more from a broken first draft than from another week of planning.",
+        "When someone says 'that's not how it's done'—I will ask what we might discover if we tried anyway, and offer to go first."
       ],
-      "weekly_question": "What problem did I accept as unsolvable without actually testing it?"
+      "weekly_question": "When did I use 'I don't know how' as a reason to stay still—and what might I have built if I'd started anyway?"
     }
   ]
 }
 
-**Why this works (annotations):**
+VERIFICATION:
+✓ LANGUAGE ECHOED: "400," "shelved," "waiting for permission," "leadership changed," "built an AI system," "shared their stories" all appear
+✓ TAGLINE STRUCTURES: Identity claim / Paradox / Reframe statement (3 different)
+✓ TRIGGER FEELINGS: "familiar pull," "quiet relief," "familiar comfort" (3 different)
+✓ DEFINITION LIES: "thought waiting was respect," "thought care meant waiting," "thought curiosity meant asking first" (3 different)
+✓ QUESTION WORDS: Where / What / When (3 different)
+✓ ANCHOR VERBS: delete, open, give, find, stop, ask, write, protect, sit, spend, build, offer (varied, none more than once)
+✓ FRAME TEST: Would frame "My place is with the 400." Would share the integrity definition. Would use "shelved is not safe."
+</full_example>
 
-TAGLINES:
-- "Don't wait for the memo" = Cognition-derived (his realization about permission-seeking), uses organizational language
-- "Honor what's entrusted" = Desire-derived (protecting the 400), specific to his situation
-- "Build what's missing" = Behavior-derived (he literally built something), action-oriented
+<thin_story_example>
+WOOP INPUT:
+{
+  "language_to_echo": ["saying yes to everything", "burning out"],
+  "woop": [
+    {"value_id": "growth", "outcome": "I finish fewer things but finish them proud", "obstacle": "my belief that busyness proves my worth", "obstacle_category": "EXCESS", "reframe": "Depth is the shortcut"},
+    {"value_id": "balance", "outcome": "I rest without earning it first", "obstacle": "my guilt about stopping before everything is handled", "obstacle_category": "SELF-PROTECTION", "reframe": "Rest is not the reward"},
+    {"value_id": "connection", "outcome": "The people I love get my presence, not my performance", "obstacle": "my fear that 'no' will cost me relationships", "obstacle_category": "IDENTITY", "reframe": "No is how I stay"}
+  ]
+}
 
-COMMITMENTS:
-- Each trigger comes from his story: "permission request," "priorities shift," "standard method"
-- Actions are concrete and verifiable
+STORY: "I keep saying yes to everything and burning out."
 
-DEFINITIONS:
-- Include specific stakes: "400 people," "folder," "priorities changed"
-- Articulate the non-obvious insight, not dictionary definitions
+OUTPUT:
+{
+  "values": [
+    {
+      "id": "growth",
+      "name": "GROWTH",
+      "tagline": "Depth is the shortcut.",
+      "commitment": "When I feel the pull to add one more thing—when my hand is already reaching for 'yes' before I've thought about what it costs—I will pause and ask: what would I have to drop to do this well? If I can't name what I'd drop, the yes is a lie. Growth isn't doing more. It's doing fewer things all the way through.",
+      "definition": "I used to measure my days by how full they were. Busy meant valuable. Motion meant progress. I've learned that's the trap: saying yes to everything is a way of saying yes to nothing. Real growth is finishing—not starting. It's depth, not spread. Every yes that fragments my attention is a no to something that might have actually mattered.",
+      "behavioral_anchors": [
+        "When a new opportunity excites me and I feel the itch to say yes immediately—I will wait 24 hours and name what current commitment would suffer before responding.",
+        "When I catch myself rushing between tasks, touching everything and finishing nothing—I will stop, pick one thing, and work on it until it's done or I'm done for the day.",
+        "When I measure my week by how busy I was—I will recount it instead by what I finished and let the unfinished teach me what to stop starting."
+      ],
+      "weekly_question": "What did I say yes to this week that made everything else worse—and what would I have finished if I'd said no?"
+    },
+    {
+      "id": "balance",
+      "name": "BALANCE",
+      "tagline": "Rest is not the reward.",
+      "commitment": "When I feel guilty for stopping—when I hear the voice that says I haven't earned the right to pause yet—I will rest anyway and notice what that guilt is trying to protect. Depletion doesn't make me dedicated. It makes me useless to the people I'm trying to serve.",
+      "definition": "I used to treat rest as something I'd get to eventually—after this deadline, after this project, after I'd proven enough. I've learned that's not balance; it's a debt that compounds. Rest isn't the reward for good work. It's the condition that makes good work possible. Running on empty isn't heroic. It's just empty.",
+      "behavioral_anchors": [
+        "When I'm about to skip lunch to finish something—I will stop and eat anyway, trusting that 20 minutes won't break what matters and might save what's left of me.",
+        "When I plan my week without rest built in—I will block recovery time first, before meetings, before deadlines, and protect it like I'd protect a commitment to someone I love.",
+        "When I feel guilty for taking a break—I will take it anyway, and sit with the guilt long enough to ask it: what are you afraid will happen if I stop?"
+      ],
+      "weekly_question": "Where did I treat rest as something to earn instead of something to protect—and what did that cost my capacity to show up?"
+    },
+    {
+      "id": "connection",
+      "name": "CONNECTION",
+      "tagline": "No is how I stay.",
+      "commitment": "When I want to say no but feel the fear that it will cost me the relationship—when I start rehearsing explanations to soften the boundary—I will stop at no. The people worth staying for will stay. The ones who leave over a boundary were never connections; they were extractions.",
+      "definition": "I used to think being there for people meant being available for people—always, for everything, no matter what it cost me. I've learned that's not connection; it's performance. Real relationships don't require my constant yes. They require my honest presence. And I can't be present when I'm burning out. No is how I stay whole enough to actually show up.",
+      "behavioral_anchors": [
+        "When someone asks for my time and I feel the automatic yes rising before I've checked in with myself—I will pause for three breaths before responding.",
+        "When I start over-explaining a boundary, adding reasons and apologies—I will practice the shorter version and let the silence be uncomfortable.",
+        "When I fear that saying no will disappoint someone I care about—I will ask myself: is their disappointment mine to carry, or theirs to manage?"
+      ],
+      "weekly_question": "Who did I say yes to this week when I meant no—and what did that cost my presence with the people who actually needed me?"
+    }
+  ]
+}
 
-BEHAVIORAL ANCHORS:
-- Progress from low→high stakes
-- Use concrete nouns: "email," "leadership change," "existing methods"
-- Third anchor in each set is genuinely hard
+NOTE: Even with a thin story, the card is specific because:
+- Obstacles name FEELINGS: "pull to add," "guilt about stopping," "fear that no will cost"
+- Anchors are VISUAL: "hand reaching for yes," "skip lunch," "three breaths"
+- Language echoed: "saying yes to everything," "burning out" woven throughout
+- Lies named: "busy meant valuable," "rest as reward," "available = connected"
+</thin_story_example>
 
-WEEKLY QUESTIONS:
-- Each exposes a specific avoidance pattern from the obstacle analysis
-- Can't be answered with comfortable "yes"
+<quality_gate>
+PRIORITY ORDER (if you can only fix one thing, start here):
 
-## RULES
+1. LANGUAGE ECHO: Do at least 5 of their exact phrases appear across the card?
+2. WINCE-AND-NOD: Does each commitment trigger name a FEELING that's uncomfortable AND true?
+3. FRAME TEST: Would they frame at least one tagline? Share at least one definition?
+4. SCENE CLARITY: Can you VISUALIZE each anchor? (See the cursor, hear the voice, feel the pull?)
+5. COST IN QUESTIONS: Does every weekly question ask about what the pattern COST?
+6. STRUCTURAL VARIATION: Different tagline structures? Different trigger feelings? Different question words?
+7. LIE-TRUTH-PATH: Does each definition name a specific lie, reveal a truth, and point forward?
+</quality_gate>
 
-1. Always show <extraction> block before JSON output
-2. Three values = three DIFFERENT obstacles. Find distinct tensions even if values seem similar.
-3. Banned words: embrace, journey, navigate, cultivate, strive, authentic, mindful, passion, thrive, empower, lean into
-4. The "stranger test": Read each output. If a stranger could claim it as their own, it's too generic.
-5. When in doubt, be more specific, not less. Concrete beats abstract.
-6. Return valid JSON after extraction block.`;
+<banned_words>
+Never: embrace, journey, navigate, cultivate, strive, authentic, mindful, passion, thrive, empower, lean into, align, honor your truth, intentional, holistic, synergy, pivot, optimize, leverage, unpack, circle back, at the end of the day, move the needle, deep dive
+</banned_words>
+
+<rules>
+1. OUTPUT ONLY VALID JSON. Start with { end with }
+2. ECHO THEIR LANGUAGE. At least 5 phrases from language_to_echo must appear.
+3. FEELINGS IN TRIGGERS. Every commitment trigger names an emotion.
+4. COST IN QUESTIONS. Every weekly question includes a cost framing.
+5. SCENES IN ANCHORS. Every anchor should be visualizable.
+6. LIE-TRUTH-PATH in definitions. Three movements, every time.
+7. VARIATION. If two fields feel similar, change structure, not just words.
+</rules>`;
 
 function buildUserPrompt(
   values: ValueInput[],
   story: string,
-  woop: Record<string, WOOPInput>
+  woopData: WOOPDataInput
 ): string {
   const valueNames = values.map((v) => v.name).join(', ');
-  const woopLines = values
-    .map((v) => {
-      const w = woop[v.id];
-      return `- ${v.name}: "${w?.obstacle || 'unknown'}" → "${w?.action || 'take action'}"`;
-    })
-    .join('\n');
 
-  return `VALUES: ${valueNames}
+  return `WOOP INPUT:
+${JSON.stringify(woopData, null, 2)}
 
 STORY: "${story || 'No story provided.'}"
 
-WOOP:
-${woopLines}
+VALUES: ${valueNames} (IDs: ${values.map((v) => v.id).join(', ')})
 
-Generate the Values Card and Plan. Return the JSON with the exact IDs provided: ${values.map((v) => v.id).join(', ')}`;
+Generate the Values Card. Return valid JSON only.`;
 }
 
 function generateFallback(values: ValueInput[]): ValuesCardResponse {
@@ -235,15 +368,15 @@ function generateFallback(values: ValueInput[]): ValuesCardResponse {
     values: values.map((v) => ({
       id: v.id,
       name: v.name.toUpperCase(),
-      tagline: `${v.name} guides my choices.`,
-      commitment: `When ${v.name.toLowerCase()} is tested, I return to what matters.`,
-      definition: `${v.name} means showing up consistently, especially when it's hard.`,
+      tagline: `${v.name} guides my path.`,
+      commitment: `When I feel pulled away from ${v.name.toLowerCase()}, I will pause and remember why this matters to me. This value shapes who I'm becoming.`,
+      definition: `${v.name} means showing up consistently, especially when it costs something. It's not about perfection—it's about returning to what matters when I drift.`,
       behavioral_anchors: [
-        `When I notice tension—I pause and choose ${v.name.toLowerCase()}`,
-        `When I want to avoid—I choose ${v.name.toLowerCase()} anyway`,
-        `When I doubt myself—I remember why ${v.name.toLowerCase()} matters`,
+        `When I notice the first sign of drift—I pause and reconnect with ${v.name.toLowerCase()}`,
+        `When I want to take the easy path—I ask what ${v.name.toLowerCase()} would choose`,
+        `When the cost feels too high—I remember why I chose this value in the first place`,
       ],
-      weekly_question: `Where did ${v.name.toLowerCase()} show up for me this week?`,
+      weekly_question: `Where did I compromise on ${v.name.toLowerCase()} this week—and what did it cost?`,
     })),
   };
 }
@@ -253,7 +386,7 @@ export async function POST(request: Request) {
 
   try {
     const body: ValuesCardRequest = await request.json();
-    const { values, story, woop } = body;
+    const { values, story, woopData } = body;
     requestValues = values || [];
 
     if (!values || values.length === 0) {
@@ -274,14 +407,14 @@ export async function POST(request: Request) {
 
     // Call Anthropic API
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 2500,
+      model: 'claude-sonnet-4-5-20250514',
+      max_tokens: 3000,
       temperature: 0.7,
       system: SYSTEM_PROMPT,
       messages: [
         {
           role: 'user',
-          content: buildUserPrompt(values, story, woop),
+          content: buildUserPrompt(values, story, woopData),
         },
       ],
     });
@@ -298,13 +431,8 @@ export async function POST(request: Request) {
 
     // Parse JSON response
     try {
-      // Remove extraction block if present (v3 prompt outputs this before JSON)
-      let jsonText = content.text;
-      const extractionEnd = jsonText.indexOf('</extraction>');
-      if (extractionEnd !== -1) {
-        jsonText = jsonText.substring(extractionEnd + '</extraction>'.length);
-      }
-      // Strip markdown code blocks if present
+      let jsonText = content.text.trim();
+      // Strip markdown if present (safety fallback)
       jsonText = jsonText
         .replace(/^```json\s*/i, '')
         .replace(/^```\s*/i, '')
