@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 
+// Netlify timeout config
+export const maxDuration = 26;
+
 const client = new Anthropic();
 
 interface ValueInput {
