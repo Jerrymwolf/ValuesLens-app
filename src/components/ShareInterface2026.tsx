@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Download, Link2, Share2, Check, User } from 'lucide-react';
 import ValuesCard2026, { type CardFormat, type ValueWithDefinition, type ContentLevel } from './ValuesCard2026';
 import { downloadCard, shareCard, copyToClipboard } from '@/lib/utils/imageGeneration';
@@ -9,6 +9,7 @@ import { downloadCard, shareCard, copyToClipboard } from '@/lib/utils/imageGener
 interface ShareInterface2026Props {
   values: ValueWithDefinition[];
   shareUrl?: string;
+  onUpdateValue?: (valueId: string, updates: { tagline?: string; commitment?: string }) => void;
 }
 
 const CONTENT_LEVELS: { id: ContentLevel; label: string }[] = [
@@ -17,7 +18,7 @@ const CONTENT_LEVELS: { id: ContentLevel; label: string }[] = [
   { id: 'commitments', label: '+ Commitments' },
 ];
 
-export default function ShareInterface2026({ values, shareUrl }: ShareInterface2026Props) {
+export default function ShareInterface2026({ values, shareUrl, onUpdateValue }: ShareInterface2026Props) {
   const format: CardFormat = 'story';
   const [contentLevel, setContentLevel] = useState<ContentLevel>('commitments');
   const [showName, setShowName] = useState(false);
@@ -27,6 +28,32 @@ export default function ShareInterface2026({ values, shareUrl }: ShareInterface2
   const [copied, setCopied] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const exportCardRef = useRef<HTMLDivElement>(null);
+
+  // Edit state
+  const [editingValue, setEditingValue] = useState<ValueWithDefinition | null>(null);
+  const [editTagline, setEditTagline] = useState('');
+  const [editCommitment, setEditCommitment] = useState('');
+
+  const startEditing = (value: ValueWithDefinition) => {
+    setEditingValue(value);
+    setEditTagline(value.tagline || '');
+    setEditCommitment(value.commitment || '');
+  };
+
+  const cancelEditing = () => {
+    setEditingValue(null);
+    setEditTagline('');
+    setEditCommitment('');
+  };
+
+  const saveEditing = () => {
+    if (!editingValue || !onUpdateValue) return;
+    onUpdateValue(editingValue.id, {
+      tagline: editTagline,
+      commitment: editCommitment,
+    });
+    cancelEditing();
+  };
 
   const valueName = values[0]?.name || 'values';
 
@@ -148,6 +175,111 @@ export default function ShareInterface2026({ values, shareUrl }: ShareInterface2
           />
         </motion.div>
       </div>
+
+      {/* Edit values list */}
+      {onUpdateValue && !editingValue && (
+        <div className="mb-6 space-y-2">
+          <p className="text-xs text-gray-500 text-center mb-2">Tap a value to edit</p>
+          {values.map((value, index) => (
+            <button
+              key={value.id}
+              onClick={() => startEditing(value)}
+              className="w-full text-left p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors group"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-prism-coral font-bold">
+                    {index === 0 ? '①' : index === 1 ? '②' : '③'}
+                  </span>
+                  <span className="font-semibold text-brand-900 truncate">{value.name}</span>
+                </div>
+                <span className="text-xs text-gray-400 group-hover:text-brand-600">Edit</span>
+              </div>
+              {value.tagline && (
+                <p className="text-sm text-gray-500 italic mt-1 truncate pl-6">{value.tagline}</p>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Edit panel */}
+      <AnimatePresence>
+        {editingValue && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="mb-6 p-4 bg-white border border-gray-200 rounded-xl shadow-sm"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-brand-900">
+                Edit {editingValue.name}
+              </h3>
+              <button
+                onClick={cancelEditing}
+                className="text-gray-400 hover:text-gray-600 text-xl leading-none"
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Tagline input */}
+            <div className="mb-4">
+              <div className="flex justify-between items-center mb-1">
+                <label className="text-sm font-medium text-gray-700">Tagline</label>
+                <span className={`text-xs ${editTagline.length > 50 ? 'text-red-500' : 'text-gray-400'}`}>
+                  {editTagline.length}/50
+                </span>
+              </div>
+              <input
+                type="text"
+                value={editTagline}
+                onChange={(e) => setEditTagline(e.target.value)}
+                placeholder="A punchy phrase (3-7 words)"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-prism-purple focus:border-transparent"
+                maxLength={50}
+              />
+              <p className="text-xs text-gray-400 mt-1">e.g., &quot;My place is with the 400.&quot;</p>
+            </div>
+
+            {/* Commitment input */}
+            <div className="mb-4">
+              <div className="flex justify-between items-center mb-1">
+                <label className="text-sm font-medium text-gray-700">Commitment</label>
+                <span className={`text-xs ${editCommitment.length > 120 ? 'text-red-500' : 'text-gray-400'}`}>
+                  {editCommitment.length}/120
+                </span>
+              </div>
+              <textarea
+                value={editCommitment}
+                onChange={(e) => setEditCommitment(e.target.value)}
+                placeholder="When [trigger], I [action]. [Truth]."
+                rows={2}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-prism-purple focus:border-transparent resize-none"
+                maxLength={120}
+              />
+              <p className="text-xs text-gray-400 mt-1">Two sentences max. Keep it punchy.</p>
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex gap-2">
+              <button
+                onClick={saveEditing}
+                className="flex-1 py-2 bg-brand-600 hover:bg-brand-700 text-white font-medium rounded-lg transition-colors"
+              >
+                Save
+              </button>
+              <button
+                onClick={cancelEditing}
+                className="px-4 py-2 text-gray-600 hover:text-gray-900 font-medium transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Hidden export card - renders at exact export dimensions, no line-clamp */}
       <div

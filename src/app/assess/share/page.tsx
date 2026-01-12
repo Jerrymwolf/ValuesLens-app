@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { RotateCcw, Sparkles, Coffee } from 'lucide-react';
@@ -33,6 +33,7 @@ export default function SharePage() {
     setConsent,
     demographics,
     reset,
+    updateDefinition,
   } = useAssessmentStore();
 
   const [isCreatingProfile, setIsCreatingProfile] = useState(false);
@@ -63,6 +64,11 @@ export default function SharePage() {
       };
     }).filter((v) => v.name);
   }, [rankedValues, definitions, goals, customValue]);
+
+  // Handler for updating value taglines/commitments
+  const handleUpdateValue = useCallback((valueId: string, updates: { tagline?: string; commitment?: string }) => {
+    updateDefinition(valueId, updates);
+  }, [updateDefinition]);
 
   // createProfile function (defined before useEffects that reference it)
   const createProfile = async () => {
@@ -203,7 +209,7 @@ export default function SharePage() {
       )}
 
       {/* Share interface */}
-      <ShareInterface2026 values={valuesWithDefinitions} shareUrl={shareUrl} />
+      <ShareInterface2026 values={valuesWithDefinitions} shareUrl={shareUrl} onUpdateValue={handleUpdateValue} />
 
       {/* Donation */}
       <div className="mt-10 pt-6 border-t border-gray-200 text-center">
