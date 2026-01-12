@@ -99,20 +99,26 @@ STRUCTURES (use at least 2 different across 3 cards):
 TEST: Say it out loud. Does it land? Would you remember it at 2am when you're tempted?
 </field>
 
-<field name="commitment" words="30-50">
-PURPOSE: The vow that connects trigger to action to meaning. Room to breathe.
-FORMAT: "When I [vivid trigger with FEELING]—[what I notice happening]—I will [specific action]. [The why: what this protects/honors/means]."
-SOURCE: WOOP obstacle → trigger feeling; WOOP reframe → action; WOOP outcome → why
+<field name="commitment" words="15-25">
+PURPOSE: A punchy, memorable vow that fits on a card. Two sentences max.
+FORMAT: "When [trigger], I [action]. [One-line truth]."
 
-TRIGGER must include:
-- A FEELING word (pull, urge, instinct, itch, familiar comfort of, tightness of)
-- A SPECIFIC BEHAVIOR from their story or pattern
-- Enough detail to recognize the moment when it comes
+STRICT CONSTRAINTS:
+- MAXIMUM 25 words total
+- MAXIMUM 2 sentences
+- NO storytelling, NO examples, NO elaboration
+- First sentence: trigger → action
+- Second sentence: the reframe/truth
 
-EXAMPLE:
-"When I feel the familiar pull to wait—when I notice myself drafting another email asking if it's okay to proceed—I will delete the draft and begin. The 400 who shared their stories already gave me permission. Their trust is my authorization."
+GOOD (15-25 words):
+- "When shame whispers 'stay quiet,' I ask anyway. Questions are how I find truth."
+- "When comfort calls, I choose the harder conversation. Avoidance costs more than honesty."
+- "When I want to smooth things over, I say the true thing. Integrity outlasts comfort."
 
-TEST: Does the trigger describe a FEELING? Is there enough detail to recognize the moment? Does the why connect to what they actually care about?
+BAD (too long - DO NOT DO THIS):
+- "When I feel the shame rising—that tightness in my chest when I realize I don't know—I will ask anyway. The speed of the judgment didn't match what I'd seen..."
+
+TEST: Count the words. If over 25, cut it down.
 </field>
 
 <field name="definition" words="40-70">
@@ -210,7 +216,7 @@ OUTPUT:
       "id": "integrity",
       "name": "INTEGRITY",
       "tagline": "My place is with the 400.",
-      "commitment": "When I feel the familiar pull to wait—when I notice myself drafting another email asking if it's okay to proceed—I will delete the draft and begin. The 400 who shared their stories already gave me permission. Their trust doesn't expire when leadership changes. My loyalty is to the people who sat across from me, not the org chart above me.",
+      "commitment": "When the pull to wait feels safe, I begin anyway. The 400 already gave me permission.",
       "definition": "I used to think waiting for permission was respect—the right way to operate inside an institution I've given 25 years to. I've learned it's something else: a way to abandon people politely while keeping my hands clean. The 400 who shared their stories didn't ask for my caution. They asked for my voice. Integrity now means this: their trust outranks my comfort. When the memo doesn't come, I become the memo.",
       "behavioral_anchors": [
         "When I notice my cursor hovering over 'send' on another permission request—I will delete the draft and open the actual work instead.",
@@ -223,7 +229,7 @@ OUTPUT:
       "id": "care",
       "name": "CARE",
       "tagline": "Shelved is not safe.",
-      "commitment": "When something important gets 'shelved' and I feel the quiet relief of it being someone else's problem now—I will interrupt that relief. Shelved is how things die. What's been entrusted to me doesn't wait for a convenient moment. It waits for me to act like it matters.",
+      "commitment": "When something gets shelved, I carry it myself. Shelved is not safe.",
       "definition": "400 people sat across from me and gave me something real—their stories, their trust, their hope that it would matter. Care means I don't let that sit in a folder while I wait for institutional timing to align. Shelved is not safe. Shelved is how trust gets abandoned in slow motion. If it was worth collecting, it's worth carrying—even when no one's asking me to.",
       "behavioral_anchors": [
         "When someone shares something vulnerable with me—I will write down within 24 hours exactly how I'll follow through, not 'when I have time.'",
@@ -236,7 +242,7 @@ OUTPUT:
       "id": "curiosity",
       "name": "CURIOSITY",
       "tagline": "Not knowing is the starting line.",
-      "commitment": "When I catch myself saying 'I don't know how to do this' and feel the familiar comfort of that being a reason to wait—I will treat it as a starting gun instead. I built an AI system without knowing how. The not-knowing wasn't the obstacle. It was the only way in.",
+      "commitment": "When 'I don't know how' feels like a reason to stop, I start building. Not knowing is the starting line.",
       "definition": "I used to think curiosity meant asking questions until I understood enough to act. I've learned it's the opposite: curiosity is building the thing before you know how. The 400 interviews needed analysis that no existing method could provide. So I built something new. The uncertainty wasn't blocking me—it was inviting me. Curiosity means this now: when the path doesn't exist, I am the path.",
       "behavioral_anchors": [
         "When I hit a wall with existing methods—I will spend 30 minutes sketching what might work before concluding it's impossible.",
@@ -278,7 +284,7 @@ OUTPUT:
       "id": "growth",
       "name": "GROWTH",
       "tagline": "Depth is the shortcut.",
-      "commitment": "When I feel the pull to add one more thing—when my hand is already reaching for 'yes' before I've thought about what it costs—I will pause and ask: what would I have to drop to do this well? If I can't name what I'd drop, the yes is a lie. Growth isn't doing more. It's doing fewer things all the way through.",
+      "commitment": "When I want to add one more thing, I ask what I'd drop. Depth is the shortcut.",
       "definition": "I used to measure my days by how full they were. Busy meant valuable. Motion meant progress. I've learned that's the trap: saying yes to everything is a way of saying yes to nothing. Real growth is finishing—not starting. It's depth, not spread. Every yes that fragments my attention is a no to something that might have actually mattered.",
       "behavioral_anchors": [
         "When a new opportunity excites me and I feel the itch to say yes immediately—I will wait 24 hours and name what current commitment would suffer before responding.",
@@ -291,7 +297,7 @@ OUTPUT:
       "id": "balance",
       "name": "BALANCE",
       "tagline": "Rest is not the reward.",
-      "commitment": "When I feel guilty for stopping—when I hear the voice that says I haven't earned the right to pause yet—I will rest anyway and notice what that guilt is trying to protect. Depletion doesn't make me dedicated. It makes me useless to the people I'm trying to serve.",
+      "commitment": "When guilt says I haven't earned rest, I rest anyway. Depletion isn't dedication.",
       "definition": "I used to treat rest as something I'd get to eventually—after this deadline, after this project, after I'd proven enough. I've learned that's not balance; it's a debt that compounds. Rest isn't the reward for good work. It's the condition that makes good work possible. Running on empty isn't heroic. It's just empty.",
       "behavioral_anchors": [
         "When I'm about to skip lunch to finish something—I will stop and eat anyway, trusting that 20 minutes won't break what matters and might save what's left of me.",
@@ -304,7 +310,7 @@ OUTPUT:
       "id": "connection",
       "name": "CONNECTION",
       "tagline": "No is how I stay.",
-      "commitment": "When I want to say no but feel the fear that it will cost me the relationship—when I start rehearsing explanations to soften the boundary—I will stop at no. The people worth staying for will stay. The ones who leave over a boundary were never connections; they were extractions.",
+      "commitment": "When I want to say no but fear the cost, I say no. No is how I stay.",
       "definition": "I used to think being there for people meant being available for people—always, for everything, no matter what it cost me. I've learned that's not connection; it's performance. Real relationships don't require my constant yes. They require my honest presence. And I can't be present when I'm burning out. No is how I stay whole enough to actually show up.",
       "behavioral_anchors": [
         "When someone asks for my time and I feel the automatic yes rising before I've checked in with myself—I will pause for three breaths before responding.",
@@ -375,7 +381,7 @@ function generateFallback(values: ValueInput[]): ValuesCardResponse {
       id: v.id,
       name: v.name.toUpperCase(),
       tagline: `${v.name} guides my path.`,
-      commitment: `When I feel pulled away from ${v.name.toLowerCase()}, I will pause and remember why this matters to me. This value shapes who I'm becoming.`,
+      commitment: `When ${v.name.toLowerCase()} feels hard, I choose it anyway. This is who I'm becoming.`,
       definition: `${v.name} means showing up consistently, especially when it costs something. It's not about perfection—it's about returning to what matters when I drift.`,
       behavioral_anchors: [
         `When I notice the first sign of drift—I pause and reconnect with ${v.name.toLowerCase()}`,
