@@ -11,10 +11,10 @@ import { useHydration } from '@/hooks/useHydration';
 // Types for WOOP API response
 interface WOOPItem {
   value_id: string;
-  outcome: string;
-  obstacle: string;
-  obstacle_category: string;
-  reframe: string;
+  outcomes: string[];
+  obstacles: string[];
+  obstacle_categories: string[];
+  reframes: string[];
 }
 
 interface ValueAnalysis {
@@ -170,12 +170,14 @@ export default function GoalsPage() {
         woop: top3Values.map((v) => {
           const w = woop[v.id];
           const suggestion = woopSuggestions?.woop.find(s => s.value_id === v.id);
+          // Get selected obstacle index to use matching category
+          const selectedObstacleIdx = suggestion?.obstacles?.indexOf(w?.obstacle || '') ?? 0;
           return {
             value_id: v.id,
-            outcome: w?.outcome || suggestion?.outcome || '',
-            obstacle: w?.obstacle || suggestion?.obstacle || '',
-            obstacle_category: suggestion?.obstacle_category || 'AVOIDANCE',
-            reframe: w?.plan || suggestion?.reframe || '',
+            outcome: w?.outcome || suggestion?.outcomes?.[0] || '',
+            obstacle: w?.obstacle || suggestion?.obstacles?.[0] || '',
+            obstacle_category: suggestion?.obstacle_categories?.[Math.max(0, selectedObstacleIdx)] || 'AVOIDANCE',
+            reframe: w?.plan || suggestion?.reframes?.[0] || '',
           };
         }),
       };

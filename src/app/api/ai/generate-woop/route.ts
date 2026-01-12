@@ -67,10 +67,10 @@ interface StoryAnalysis {
 
 interface WOOPItem {
   value_id: string;
-  outcome: string;
-  obstacle: string;
-  obstacle_category: 'AVOIDANCE' | 'EXCESS' | 'TIMING' | 'SELF-PROTECTION' | 'IDENTITY';
-  reframe: string;
+  outcomes: string[];
+  obstacles: string[];
+  obstacle_categories: ('AVOIDANCE' | 'EXCESS' | 'TIMING' | 'SELF-PROTECTION' | 'IDENTITY')[];
+  reframes: string[];
 }
 
 interface WOOPResponse {
@@ -87,7 +87,7 @@ const SYSTEM_PROMPT = `You analyze stories and generate WOOP statements that mak
 
 ## YOUR TASK
 1. First, internally analyze the story using the ABCD framework
-2. Then, generate WOOP statements based on your analysis
+2. Then, generate **3 OPTIONS** for each WOOP field per value
 3. Return everything via the tool
 
 ## ABCD FRAMEWORK (Internal Analysis)
@@ -107,27 +107,32 @@ Also identify:
 
 ## WOOP GENERATION RULES
 
-**OUTCOME** (10-20 words)
-- Speaks to their DESIRE
-- Vivid, emotional, relational
-- Starts with "I", present tense
+**IMPORTANT: Generate exactly 3 different options for each field (outcomes, obstacles, reframes)**
 
-**OBSTACLE** (8-15 words)
-- MUST start with "my [feeling-word]..."
+**OUTCOMES** (3 options, each 10-20 words)
+- Each speaks to their DESIRE differently
+- Vivid, emotional, relational
+- Each starts with "I", present tense
+- Vary the angle: one aspirational, one relational, one relief-focused
+
+**OBSTACLES** (3 options, each 8-15 words)
+- Each MUST start with "my [feeling-word]..."
 - Names deeper AFFECT, not surface
 - Format: "my [feeling] that/of [pattern]"
+- Each should explore a DIFFERENT category
 
-**OBSTACLE_CATEGORY** - Assign DIFFERENT categories across values:
+**OBSTACLE_CATEGORIES** - Provide category for each obstacle:
 - AVOIDANCE: Dodging discomfort/vulnerability
 - EXCESS: Overdoing, perfectionism
 - TIMING: Waiting, rushing, delaying
 - SELF-PROTECTION: Hiding, minimizing
 - IDENTITY: Role constraints
 
-**REFRAME** (3-8 words)
-- Flips protective behavior into fuel
+**REFRAMES** (3 options, each 3-8 words)
+- Each flips protective behavior into fuel
 - Has rhythm, tension, surprise
 - Sticky enough for a post-it note
+- Vary style: one punchy, one poetic, one actionable
 
 ## THIN STORY HANDLING
 
@@ -138,13 +143,12 @@ If story is sparse (<30 words):
 
 ## QUALITY GATE
 
-Before returning, verify:
-□ Each OUTCOME speaks to specific desire
-□ Each OBSTACLE names a feeling (not just behavior)
-□ Each OBSTACLE passes wince-and-nod test
-□ Each REFRAME has rhythm + tension + surprise
-□ At least 2 different obstacle categories used
-□ Language from story echoed in outputs`;
+Before returning, verify for EACH value:
+□ Exactly 3 outcomes, 3 obstacles, 3 obstacle_categories, 3 reframes
+□ Each outcome speaks to specific desire
+□ Each obstacle names a feeling and starts with "my..."
+□ Each reframe has rhythm + tension + surprise
+□ Options feel distinct, not repetitive`;
 
 // ============ TOOL SCHEMA ============
 
@@ -224,15 +228,31 @@ const tools: Anthropic.Tool[] = [
             type: 'object',
             properties: {
               value_id: { type: 'string' },
-              outcome: { type: 'string' },
-              obstacle: { type: 'string' },
-              obstacle_category: {
-                type: 'string',
-                enum: ['AVOIDANCE', 'EXCESS', 'TIMING', 'SELF-PROTECTION', 'IDENTITY'],
+              outcomes: {
+                type: 'array',
+                items: { type: 'string' },
+                description: '3 different outcome options',
               },
-              reframe: { type: 'string' },
+              obstacles: {
+                type: 'array',
+                items: { type: 'string' },
+                description: '3 different obstacle options, each starting with "my..."',
+              },
+              obstacle_categories: {
+                type: 'array',
+                items: {
+                  type: 'string',
+                  enum: ['AVOIDANCE', 'EXCESS', 'TIMING', 'SELF-PROTECTION', 'IDENTITY'],
+                },
+                description: 'Category for each obstacle (3 total)',
+              },
+              reframes: {
+                type: 'array',
+                items: { type: 'string' },
+                description: '3 different reframe options',
+              },
             },
-            required: ['value_id', 'outcome', 'obstacle', 'obstacle_category', 'reframe'],
+            required: ['value_id', 'outcomes', 'obstacles', 'obstacle_categories', 'reframes'],
           },
         },
       },
@@ -269,7 +289,11 @@ function validateResult(
     (a) => a.affect?.deeper && a.behavior?.protective && a.desire?.hungry_for
   );
   const woopValid = result.woop.every(
-    (w) => w.outcome && w.obstacle && w.obstacle_category && w.reframe
+    (w) =>
+      w.outcomes?.length >= 1 &&
+      w.obstacles?.length >= 1 &&
+      w.obstacle_categories?.length >= 1 &&
+      w.reframes?.length >= 1
   );
 
   return analysisValid && woopValid;
@@ -319,7 +343,7 @@ function generateFallbackAnalysis(values: ValueInput[], story: string): StoryAna
 }
 
 function generateFallbackWoop(analysis: StoryAnalysis): WOOPItem[] {
-  const categories: WOOPItem['obstacle_category'][] = [
+  const allCategories: WOOPItem['obstacle_categories'][0][] = [
     'AVOIDANCE',
     'TIMING',
     'SELF-PROTECTION',
@@ -329,11 +353,26 @@ function generateFallbackWoop(analysis: StoryAnalysis): WOOPItem[] {
 
   return analysis.values_analysis.map((a, i) => ({
     value_id: a.value_id,
-    outcome:
+    outcomes: [
       a.desire.relief_sought || `I live ${a.value_name.toLowerCase()} fully and feel aligned`,
-    obstacle: `my ${a.affect.deeper || 'fear'} that keeps me from ${a.behavior.aspirational || 'moving forward'}`,
-    obstacle_category: categories[i % categories.length],
-    reframe: 'The obstacle is the way',
+      `I experience ${a.value_name.toLowerCase()} in my daily choices and relationships`,
+      `I feel proud of how ${a.value_name.toLowerCase()} shows up in my life`,
+    ],
+    obstacles: [
+      `my ${a.affect.deeper || 'fear'} that keeps me from ${a.behavior.aspirational || 'moving forward'}`,
+      `my tendency to ${a.behavior.protective || 'stay comfortable'} when challenged`,
+      `my belief that ${a.cognition.lie || 'conditions must be perfect first'}`,
+    ],
+    obstacle_categories: [
+      allCategories[i % allCategories.length],
+      allCategories[(i + 1) % allCategories.length],
+      allCategories[(i + 2) % allCategories.length],
+    ],
+    reframes: [
+      'The obstacle is the way',
+      'Small steps, big shifts',
+      'Progress over perfection',
+    ],
   }));
 }
 
@@ -392,7 +431,7 @@ export async function POST(request: Request) {
       });
     }
 
-    console.log('[WOOP] Complete. Categories:', result.woop.map((w) => w.obstacle_category));
+    console.log('[WOOP] Complete. Categories:', result.woop.map((w) => w.obstacle_categories));
 
     return NextResponse.json({
       language_to_echo: result.language_to_echo,

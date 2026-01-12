@@ -5,10 +5,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Sparkles, Check } from 'lucide-react';
 
 interface WOOPItem {
-  outcome: string;
-  obstacle: string;
-  obstacle_category: string;
-  reframe: string;
+  outcomes: string[];
+  obstacles: string[];
+  obstacle_categories: string[];
+  reframes: string[];
 }
 
 interface WOOPValueCardProps {
@@ -85,23 +85,17 @@ export default function WOOPValueCard({
   };
 
   // Select AI suggestion
-  const selectOutcome = () => {
-    if (woopItem?.outcome) {
-      setSelectedOutcome(woopItem.outcome);
-    }
+  const selectOutcome = (outcome: string) => {
+    setSelectedOutcome(outcome);
   };
 
-  const selectObstacle = () => {
-    if (woopItem?.obstacle) {
-      setSelectedObstacle(woopItem.obstacle);
-      setPlan(''); // Reset plan when obstacle changes
-    }
+  const selectObstacle = (obstacle: string) => {
+    setSelectedObstacle(obstacle);
+    setPlan(''); // Reset plan when obstacle changes
   };
 
-  const selectPlan = () => {
-    if (woopItem?.reframe) {
-      setPlan(woopItem.reframe);
-    }
+  const selectPlan = (reframe: string) => {
+    setPlan(reframe);
   };
 
   return (
@@ -173,28 +167,29 @@ export default function WOOPValueCard({
                   className="overflow-hidden"
                 >
                   <div className="px-4 pb-4 space-y-2">
-                    {/* AI Suggestion */}
-                    {woopItem?.outcome && (
+                    {/* AI Suggestions */}
+                    {woopItem?.outcomes?.map((outcome, idx) => (
                       <button
-                        onClick={selectOutcome}
+                        key={idx}
+                        onClick={() => selectOutcome(outcome)}
                         className={`w-full text-left p-3 rounded-lg border transition-all ${
-                          selectedOutcome === woopItem.outcome
+                          selectedOutcome === outcome
                             ? 'border-prism-purple bg-prism-subtle'
                             : 'border-gray-200 hover:border-gray-300'
                         }`}
                       >
                         <div className="flex items-start gap-2">
                           <Sparkles size={14} className="text-prism-purple mt-0.5 flex-shrink-0" />
-                          <p className="text-sm text-gray-700">{woopItem.outcome}</p>
+                          <p className="text-sm text-gray-700">{outcome}</p>
                         </div>
                       </button>
-                    )}
+                    ))}
 
                     {/* Custom input */}
                     <input
                       type="text"
                       placeholder="Or write your own outcome..."
-                      value={selectedOutcome === woopItem?.outcome ? '' : selectedOutcome}
+                      value={woopItem?.outcomes?.includes(selectedOutcome) ? '' : selectedOutcome}
                       onChange={(e) => setSelectedOutcome(e.target.value)}
                       className="w-full p-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-prism-purple focus:border-transparent"
                     />
@@ -240,12 +235,13 @@ export default function WOOPValueCard({
                   className="overflow-hidden"
                 >
                   <div className="px-4 pb-4 space-y-2">
-                    {/* AI Suggestion */}
-                    {woopItem?.obstacle && (
+                    {/* AI Suggestions */}
+                    {woopItem?.obstacles?.map((obstacle, idx) => (
                       <button
-                        onClick={selectObstacle}
+                        key={idx}
+                        onClick={() => selectObstacle(obstacle)}
                         className={`w-full text-left p-3 rounded-lg border transition-all ${
-                          selectedObstacle === woopItem.obstacle
+                          selectedObstacle === obstacle
                             ? 'border-prism-coral bg-red-50'
                             : 'border-gray-200 hover:border-gray-300'
                         }`}
@@ -253,20 +249,20 @@ export default function WOOPValueCard({
                         <div className="flex items-start gap-2">
                           <Sparkles size={14} className="text-prism-coral mt-0.5 flex-shrink-0" />
                           <div>
-                            <p className="text-sm text-gray-700">{woopItem.obstacle}</p>
+                            <p className="text-sm text-gray-700">{obstacle}</p>
                             <p className="text-xs text-gray-400 mt-1">
-                              {woopItem.obstacle_category}
+                              {woopItem.obstacle_categories?.[idx]}
                             </p>
                           </div>
                         </div>
                       </button>
-                    )}
+                    ))}
 
                     {/* Custom input */}
                     <input
                       type="text"
                       placeholder="Or write your own obstacle..."
-                      value={selectedObstacle === woopItem?.obstacle ? '' : selectedObstacle}
+                      value={woopItem?.obstacles?.includes(selectedObstacle) ? '' : selectedObstacle}
                       onChange={(e) => {
                         setSelectedObstacle(e.target.value);
                         setPlan('');
@@ -326,28 +322,29 @@ export default function WOOPValueCard({
                       </p>
                     </div>
 
-                    {/* AI Suggestion (reframe) */}
-                    {woopItem?.reframe && (
+                    {/* AI Suggestions (reframes) */}
+                    {woopItem?.reframes?.map((reframe, idx) => (
                       <button
-                        onClick={selectPlan}
+                        key={idx}
+                        onClick={() => selectPlan(reframe)}
                         className={`w-full text-left p-3 rounded-lg border transition-all ${
-                          plan === woopItem.reframe
+                          plan === reframe
                             ? 'border-prism-purple bg-prism-subtle'
                             : 'border-gray-200 hover:border-gray-300'
                         }`}
                       >
                         <div className="flex items-start gap-2">
                           <Sparkles size={14} className="text-prism-purple mt-0.5 flex-shrink-0" />
-                          <p className="text-sm text-gray-700">{woopItem.reframe}</p>
+                          <p className="text-sm text-gray-700">{reframe}</p>
                         </div>
                       </button>
-                    )}
+                    ))}
 
                     {/* Custom action input */}
                     <input
                       type="text"
                       placeholder="Or write your own action..."
-                      value={plan === woopItem?.reframe ? '' : plan}
+                      value={woopItem?.reframes?.includes(plan) ? '' : plan}
                       onChange={(e) => setPlan(e.target.value)}
                       className="w-full p-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-prism-purple focus:border-transparent"
                     />
