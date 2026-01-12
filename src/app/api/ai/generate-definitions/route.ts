@@ -64,7 +64,7 @@ function buildSystemPrompt(): string {
 
 Your job is to create PERSONALIZED definitions that reflect how THIS specific person lives their values, based on:
 1. Their story/transcript (what they shared about their values)
-2. Their WOOP goals (their if-then commitments)
+2. Their VOOP goals (their if-then commitments)
 3. The specific values they chose
 
 GUIDELINES:

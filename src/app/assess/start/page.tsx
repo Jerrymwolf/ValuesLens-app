@@ -33,7 +33,7 @@ const STEPS = [
     icon: Sparkles,
     title: 'Goals',
     time: '~2 min',
-    description: "Create 'if-then' commitments using WOOP. AI helps with suggestions.",
+    description: "Create 'if-then' commitments using VOOP. AI helps with suggestions.",
   },
   {
     icon: Share2,

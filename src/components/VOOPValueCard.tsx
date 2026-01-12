@@ -4,42 +4,42 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Sparkles, Check } from 'lucide-react';
 
-interface WOOPItem {
+interface VOOPItem {
   outcomes: string[];
   obstacles: string[];
   obstacle_categories: string[];
   reframes: string[];
 }
 
-interface WOOPValueCardProps {
+interface VOOPValueCardProps {
   valueId: string;
   valueName: string;
-  woopItem?: WOOPItem;
+  voopItem?: VOOPItem;
   isLoading?: boolean;
   loadingMessage?: string;
   error?: string | null;
-  savedWoop?: {
+  savedVoop?: {
     outcome: string;
     obstacle: string;
     plan: string;
   };
-  onComplete: (valueId: string, woop: { outcome: string; obstacle: string; plan: string }) => void;
+  onComplete: (valueId: string, voop: { outcome: string; obstacle: string; plan: string }) => void;
 }
 
-export default function WOOPValueCard({
+export default function VOOPValueCard({
   valueId,
   valueName,
-  woopItem,
+  voopItem,
   isLoading = false,
   loadingMessage,
   error,
-  savedWoop,
+  savedVoop,
   onComplete,
-}: WOOPValueCardProps) {
+}: VOOPValueCardProps) {
   // Use saved values or empty strings
-  const [selectedOutcome, setSelectedOutcome] = useState(savedWoop?.outcome || '');
-  const [selectedObstacle, setSelectedObstacle] = useState(savedWoop?.obstacle || '');
-  const [plan, setPlan] = useState(savedWoop?.plan || '');
+  const [selectedOutcome, setSelectedOutcome] = useState(savedVoop?.outcome || '');
+  const [selectedObstacle, setSelectedObstacle] = useState(savedVoop?.obstacle || '');
+  const [plan, setPlan] = useState(savedVoop?.plan || '');
 
   const [expandedSection, setExpandedSection] = useState<'outcome' | 'obstacle' | 'plan'>('outcome');
 
@@ -53,20 +53,20 @@ export default function WOOPValueCard({
 
   // Auto-advance sections (only when clicking AI suggestions, not when typing custom)
   useEffect(() => {
-    const isAISuggestion = woopItem?.outcomes?.includes(selectedOutcome);
+    const isAISuggestion = voopItem?.outcomes?.includes(selectedOutcome);
     if (selectedOutcome && !prevOutcomeRef.current && expandedSection === 'outcome' && isAISuggestion) {
       setExpandedSection('obstacle');
     }
     prevOutcomeRef.current = selectedOutcome;
-  }, [selectedOutcome, expandedSection, woopItem?.outcomes]);
+  }, [selectedOutcome, expandedSection, voopItem?.outcomes]);
 
   useEffect(() => {
-    const isAISuggestion = woopItem?.obstacles?.includes(selectedObstacle);
+    const isAISuggestion = voopItem?.obstacles?.includes(selectedObstacle);
     if (selectedObstacle && !prevObstacleRef.current && expandedSection === 'obstacle' && isAISuggestion) {
       setExpandedSection('plan');
     }
     prevObstacleRef.current = selectedObstacle;
-  }, [selectedObstacle, expandedSection, woopItem?.obstacles]);
+  }, [selectedObstacle, expandedSection, voopItem?.obstacles]);
 
   // Check if complete
   const isComplete = !!selectedOutcome && !!selectedObstacle && !!plan;
@@ -170,7 +170,7 @@ export default function WOOPValueCard({
                 >
                   <div className="px-4 pb-4 space-y-2">
                     {/* AI Suggestions */}
-                    {woopItem?.outcomes?.map((outcome, idx) => (
+                    {voopItem?.outcomes?.map((outcome, idx) => (
                       <button
                         key={idx}
                         onClick={() => selectOutcome(outcome)}
@@ -191,7 +191,7 @@ export default function WOOPValueCard({
                     <input
                       type="text"
                       placeholder="Or write your own outcome..."
-                      value={woopItem?.outcomes?.includes(selectedOutcome) ? '' : selectedOutcome}
+                      value={voopItem?.outcomes?.includes(selectedOutcome) ? '' : selectedOutcome}
                       onChange={(e) => setSelectedOutcome(e.target.value)}
                       className="w-full p-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-prism-purple focus:border-transparent"
                     />
@@ -238,7 +238,7 @@ export default function WOOPValueCard({
                 >
                   <div className="px-4 pb-4 space-y-2">
                     {/* AI Suggestions */}
-                    {woopItem?.obstacles?.map((obstacle, idx) => (
+                    {voopItem?.obstacles?.map((obstacle, idx) => (
                       <button
                         key={idx}
                         onClick={() => selectObstacle(obstacle)}
@@ -253,7 +253,7 @@ export default function WOOPValueCard({
                           <div>
                             <p className="text-sm text-gray-700">{obstacle}</p>
                             <p className="text-xs text-gray-400 mt-1">
-                              {woopItem.obstacle_categories?.[idx]}
+                              {voopItem.obstacle_categories?.[idx]}
                             </p>
                           </div>
                         </div>
@@ -264,7 +264,7 @@ export default function WOOPValueCard({
                     <input
                       type="text"
                       placeholder="Or write your own obstacle..."
-                      value={woopItem?.obstacles?.includes(selectedObstacle) ? '' : selectedObstacle}
+                      value={voopItem?.obstacles?.includes(selectedObstacle) ? '' : selectedObstacle}
                       onChange={(e) => {
                         setSelectedObstacle(e.target.value);
                         setPlan('');
@@ -325,7 +325,7 @@ export default function WOOPValueCard({
                     </div>
 
                     {/* AI Suggestions (reframes) */}
-                    {woopItem?.reframes?.map((reframe, idx) => (
+                    {voopItem?.reframes?.map((reframe, idx) => (
                       <button
                         key={idx}
                         onClick={() => selectPlan(reframe)}
@@ -346,7 +346,7 @@ export default function WOOPValueCard({
                     <input
                       type="text"
                       placeholder="Or write your own action..."
-                      value={woopItem?.reframes?.includes(plan) ? '' : plan}
+                      value={voopItem?.reframes?.includes(plan) ? '' : plan}
                       onChange={(e) => setPlan(e.target.value)}
                       className="w-full p-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-prism-purple focus:border-transparent"
                     />

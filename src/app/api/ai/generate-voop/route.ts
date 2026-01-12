@@ -21,12 +21,12 @@ interface ValueInput {
   name: string;
 }
 
-interface WOOPRequest {
+interface VOOPRequest {
   values: ValueInput[];
   story: string;
 }
 
-interface WOOPItem {
+interface VOOPItem {
   value_id: string;
   outcomes: string[];
   obstacles: string[];
@@ -34,16 +34,16 @@ interface WOOPItem {
   reframes: string[];
 }
 
-interface WOOPResponse {
+interface VOOPResponse {
   language_to_echo: string[];
-  woop: WOOPItem[];
+  voop: VOOPItem[];
   fallback?: boolean;
   error?: string;
 }
 
 // ============ SYSTEM PROMPT ============
 
-const SYSTEM_PROMPT = `Generate WOOP statements that make people wince AND nod.
+const SYSTEM_PROMPT = `Generate VOOP statements that make people wince AND nod.
 
 For each value, generate exactly 3 OPTIONS for each field.
 
@@ -71,8 +71,8 @@ If story is sparse, infer patterns from the chosen values.`;
 
 const tools: Anthropic.Tool[] = [
   {
-    name: 'generate_woop',
-    description: 'Generate WOOP statements for values',
+    name: 'generate_voop',
+    description: 'Generate VOOP statements for values',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -80,7 +80,7 @@ const tools: Anthropic.Tool[] = [
           type: 'array',
           items: { type: 'string' },
         },
-        woop: {
+        voop: {
           type: 'array',
           items: {
             type: 'object',
@@ -101,7 +101,7 @@ const tools: Anthropic.Tool[] = [
           },
         },
       },
-      required: ['language_to_echo', 'woop'],
+      required: ['language_to_echo', 'voop'],
     },
   },
 ];
@@ -110,26 +110,26 @@ const tools: Anthropic.Tool[] = [
 
 function buildUserPrompt(values: ValueInput[], story: string): string {
   const valueList = values.map((v) => `${v.name} (id: ${v.id})`).join(', ');
-  return `Generate WOOP statements for these values:
+  return `Generate VOOP statements for these values:
 
 VALUES: ${valueList}
 
 STORY: "${story || 'No story provided. Infer patterns from the chosen values.'}"
 
-Use the generate_woop tool.`;
+Use the generate_voop tool.`;
 }
 
 // ============ VALIDATION HELPER ============
 
 function validateResult(
-  result: { language_to_echo: string[]; woop: WOOPItem[] } | null,
+  result: { language_to_echo: string[]; voop: VOOPItem[] } | null,
   values: ValueInput[]
 ): boolean {
   if (!result) return false;
   if (!result.language_to_echo?.length) return false;
-  if (result.woop?.length !== values.length) return false;
+  if (result.voop?.length !== values.length) return false;
 
-  return result.woop.every(
+  return result.voop.every(
     (w) =>
       w.outcomes?.length >= 1 &&
       w.obstacles?.length >= 1 &&
@@ -147,8 +147,8 @@ function extractToolUse<T>(response: Anthropic.Message, toolName: string): T | n
 
 // ============ FALLBACK FUNCTION ============
 
-function generateFallbackWoop(values: ValueInput[]): WOOPItem[] {
-  const categories: WOOPItem['obstacle_categories'][0][] = [
+function generateFallbackVoop(values: ValueInput[]): VOOPItem[] {
+  const categories: VOOPItem['obstacle_categories'][0][] = [
     'AVOIDANCE',
     'TIMING',
     'SELF-PROTECTION',
@@ -193,7 +193,7 @@ export async function POST(request: Request) {
   let requestStory = '';
 
   try {
-    const body = (await request.json()) as WOOPRequest;
+    const body = (await request.json()) as VOOPRequest;
     requestValues = body.values || [];
     requestStory = body.story || '';
 
@@ -202,20 +202,20 @@ export async function POST(request: Request) {
     }
 
     if (!process.env.ANTHROPIC_API_KEY) {
-      console.warn('[WOOP] No API key, using fallback');
+      console.warn('[VOOP] No API key, using fallback');
       return NextResponse.json({
         language_to_echo: generateFallbackLanguage(requestStory),
-        woop: generateFallbackWoop(requestValues),
+        voop: generateFallbackVoop(requestValues),
         fallback: true,
       });
     }
 
-    console.log('[WOOP] Generating WOOP with Sonnet 4.5...');
+    console.log('[VOOP] Generating VOOP with Sonnet 4.5...');
 
     const stream = await client.messages.stream({
       ...CONFIG,
       tools,
-      tool_choice: { type: 'tool', name: 'generate_woop' },
+      tool_choice: { type: 'tool', name: 'generate_voop' },
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: buildUserPrompt(requestValues, requestStory) }],
     });
@@ -223,38 +223,38 @@ export async function POST(request: Request) {
     const response = await stream.finalMessage();
     const result = extractToolUse<{
       language_to_echo: string[];
-      woop: WOOPItem[];
-    }>(response, 'generate_woop');
+      voop: VOOPItem[];
+    }>(response, 'generate_voop');
 
     // Validate and fallback if needed
     if (!result || !validateResult(result, requestValues)) {
-      console.warn('[WOOP] Validation failed, using fallback');
+      console.warn('[VOOP] Validation failed, using fallback');
       return NextResponse.json({
         language_to_echo: generateFallbackLanguage(requestStory),
-        woop: generateFallbackWoop(requestValues),
+        voop: generateFallbackVoop(requestValues),
         fallback: true,
       });
     }
 
-    console.log('[WOOP] Complete. Categories:', result.woop.map((w) => w.obstacle_categories));
+    console.log('[VOOP] Complete. Categories:', result.voop.map((w) => w.obstacle_categories));
 
     return NextResponse.json({
       language_to_echo: result.language_to_echo,
-      woop: result.woop,
-    } as WOOPResponse);
+      voop: result.voop,
+    } as VOOPResponse);
 
   } catch (error) {
-    console.error('[WOOP] Error:', error);
+    console.error('[VOOP] Error:', error);
 
     if (requestValues.length > 0) {
       return NextResponse.json({
         language_to_echo: generateFallbackLanguage(requestStory),
-        woop: generateFallbackWoop(requestValues),
+        voop: generateFallbackVoop(requestValues),
         fallback: true,
         error: 'Pipeline failed, using fallback',
       });
     }
 
-    return NextResponse.json({ error: 'Failed to generate WOOP' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to generate VOOP' }, { status: 500 });
   }
 }

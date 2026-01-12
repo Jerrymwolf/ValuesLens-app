@@ -25,7 +25,7 @@ interface CustomValue {
   name: string;
 }
 
-interface WOOPData {
+interface VOOPData {
   outcome: string;
   obstacle: string;
   plan: string; // The "then I will..." part
@@ -60,8 +60,8 @@ interface AssessmentState {
   // Goals phase (2026 commitments)
   goals: Record<string, string>;
 
-  // WOOP data per value
-  woop: Record<string, WOOPData>;
+  // VOOP data per value
+  voop: Record<string, VOOPData>;
 
   // AI results
   definitions: Record<string, ValueDefinition>;
@@ -97,8 +97,8 @@ interface AssessmentActions {
   setGoal: (valueId: string, text: string) => void;
   setGoals: (goals: Record<string, string>) => void;
 
-  // WOOP
-  setWoop: (valueId: string, woop: WOOPData) => void;
+  // VOOP
+  setVoop: (valueId: string, voop: VOOPData) => void;
 
   // Sharing
   setShareSlug: (slug: string) => void;
@@ -126,7 +126,7 @@ const initialState: AssessmentState = {
   rankedValues: [],
   transcript: '',
   goals: {},
-  woop: {},
+  voop: {},
   definitions: {},
   shareSlug: null,
 };
@@ -244,17 +244,17 @@ export const useAssessmentStore = create<AssessmentStore>()(
 
       setGoals: (goals) => set({ goals }),
 
-      // WOOP
-      setWoop: (valueId, woopData) =>
+      // VOOP
+      setVoop: (valueId, voopData) =>
         set((state) => ({
-          woop: {
-            ...state.woop,
-            [valueId]: woopData,
+          voop: {
+            ...state.voop,
+            [valueId]: voopData,
           },
           // Also set the goal as the full if-then statement
           goals: {
             ...state.goals,
-            [valueId]: `If ${woopData.obstacle.toLowerCase()}, then I will ${woopData.plan}`,
+            [valueId]: `If ${voopData.obstacle.toLowerCase()}, then I will ${voopData.plan}`,
           },
         })),
 
@@ -270,6 +270,23 @@ export const useAssessmentStore = create<AssessmentStore>()(
     }
   )
 );
+
+// Migration: rename woop → voop for existing users
+if (typeof window !== 'undefined') {
+  const stored = localStorage.getItem('valuesprofile-assessment');
+  if (stored) {
+    try {
+      const parsed = JSON.parse(stored);
+      if (parsed.state?.woop && !parsed.state?.voop) {
+        parsed.state.voop = parsed.state.woop;
+        delete parsed.state.woop;
+        localStorage.setItem('valuesprofile-assessment', JSON.stringify(parsed));
+      }
+    } catch {
+      // Ignore parse errors
+    }
+  }
+}
 
 // Selectors
 export const selectProgress = (state: AssessmentStore) => ({
