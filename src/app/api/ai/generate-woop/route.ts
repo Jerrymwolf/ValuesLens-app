@@ -9,7 +9,7 @@ const client = new Anthropic();
 // ============ CONFIGURATION ============
 
 const CONFIG = {
-  model: 'claude-sonnet-4-5-20250514' as const,
+  model: 'claude-sonnet-4-5-20250929' as const,
   max_tokens: 1500,
   temperature: 0.7,
 };

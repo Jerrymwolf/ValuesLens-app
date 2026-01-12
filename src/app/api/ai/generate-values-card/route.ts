@@ -414,7 +414,7 @@ export async function POST(request: Request) {
     // Call Anthropic API with streaming for Netlify timeout safety
     console.log('[VALUES-CARD] Generating with Sonnet 4.5...');
     const stream = await client.messages.stream({
-      model: 'claude-sonnet-4-5-20250514',
+      model: 'claude-sonnet-4-5-20250929',
       max_tokens: 3000,
       temperature: 0.7,
       system: SYSTEM_PROMPT,
