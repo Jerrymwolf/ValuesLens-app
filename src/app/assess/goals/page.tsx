@@ -17,21 +17,8 @@ interface WOOPItem {
   reframes: string[];
 }
 
-interface ValueAnalysis {
-  value_id: string;
-  value_name: string;
-  affect: { surface: string; deeper: string };
-  behavior: { protective: string; aspirational: string; tell: string };
-  cognition: { belief: string; lie: string };
-  desire: { hungry_for: string; protecting: string; relief_sought: string };
-  wound: string;
-  wince_moment: string;
-  nod_moment: string;
-}
-
 interface WOOPSuggestions {
   language_to_echo: string[];
-  analysis: ValueAnalysis[];
   woop: WOOPItem[];
 }
 
@@ -166,7 +153,6 @@ export default function GoalsPage() {
       // Format enriched WOOP data for values card generation
       const woopData = {
         language_to_echo: woopSuggestions?.language_to_echo || [],
-        analysis: woopSuggestions?.analysis || [],
         woop: top3Values.map((v) => {
           const w = woop[v.id];
           const suggestion = woopSuggestions?.woop.find(s => s.value_id === v.id);
