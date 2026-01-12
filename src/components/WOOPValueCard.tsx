@@ -51,20 +51,22 @@ export default function WOOPValueCard({
   const prevOutcomeRef = useRef(selectedOutcome);
   const prevObstacleRef = useRef(selectedObstacle);
 
-  // Auto-advance sections
+  // Auto-advance sections (only when clicking AI suggestions, not when typing custom)
   useEffect(() => {
-    if (selectedOutcome && !prevOutcomeRef.current && expandedSection === 'outcome') {
+    const isAISuggestion = woopItem?.outcomes?.includes(selectedOutcome);
+    if (selectedOutcome && !prevOutcomeRef.current && expandedSection === 'outcome' && isAISuggestion) {
       setExpandedSection('obstacle');
     }
     prevOutcomeRef.current = selectedOutcome;
-  }, [selectedOutcome, expandedSection]);
+  }, [selectedOutcome, expandedSection, woopItem?.outcomes]);
 
   useEffect(() => {
-    if (selectedObstacle && !prevObstacleRef.current && expandedSection === 'obstacle') {
+    const isAISuggestion = woopItem?.obstacles?.includes(selectedObstacle);
+    if (selectedObstacle && !prevObstacleRef.current && expandedSection === 'obstacle' && isAISuggestion) {
       setExpandedSection('plan');
     }
     prevObstacleRef.current = selectedObstacle;
-  }, [selectedObstacle, expandedSection]);
+  }, [selectedObstacle, expandedSection, woopItem?.obstacles]);
 
   // Check if complete
   const isComplete = !!selectedOutcome && !!selectedObstacle && !!plan;
@@ -360,7 +362,7 @@ export default function WOOPValueCard({
       {isComplete && (
         <div className="p-4 bg-green-50 border-t border-green-100">
           <p className="text-sm text-green-800">
-            <span className="font-medium">Your commitment:</span> If {selectedObstacle.toLowerCase()}, then I will {plan}
+            <span className="font-medium">Your commitment:</span> When {selectedObstacle.toLowerCase()}, I&apos;ll remember: {plan}
           </p>
         </div>
       )}

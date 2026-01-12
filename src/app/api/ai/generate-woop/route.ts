@@ -9,7 +9,7 @@ const client = new Anthropic();
 // ============ CONFIGURATION ============
 
 const CONFIG = {
-  model: 'claude-3-5-haiku-20241022' as const,
+  model: 'claude-sonnet-4-5-20250514' as const,
   max_tokens: 1500,
   temperature: 0.7,
 };
@@ -210,7 +210,7 @@ export async function POST(request: Request) {
       });
     }
 
-    console.log('[WOOP] Generating WOOP with Haiku...');
+    console.log('[WOOP] Generating WOOP with Sonnet 4.5...');
 
     const stream = await client.messages.stream({
       ...CONFIG,

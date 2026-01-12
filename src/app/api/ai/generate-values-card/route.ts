@@ -19,44 +19,8 @@ interface WOOPItem {
   reframe: string;
 }
 
-// ABCD Analysis from Stage 1 of WOOP pipeline
-interface AffectAnalysis {
-  surface: string;
-  deeper: string;
-}
-
-interface BehaviorAnalysis {
-  protective: string;
-  aspirational: string;
-  tell: string;
-}
-
-interface CognitionAnalysis {
-  belief: string;
-  lie: string;
-}
-
-interface DesireAnalysis {
-  hungry_for: string;
-  protecting: string;
-  relief_sought: string;
-}
-
-interface ValueAnalysis {
-  value_id: string;
-  value_name: string;
-  affect: AffectAnalysis;
-  behavior: BehaviorAnalysis;
-  cognition: CognitionAnalysis;
-  desire: DesireAnalysis;
-  wound: string;
-  wince_moment: string;
-  nod_moment: string;
-}
-
 interface WOOPDataInput {
   language_to_echo: string[];
-  analysis?: ValueAnalysis[];  // Full ABCD analysis from Stage 1 (optional for backwards compat)
   woop: WOOPItem[];
 }
 
@@ -392,24 +356,8 @@ function buildUserPrompt(
 ): string {
   const valueNames = values.map((v) => v.name).join(', ');
 
-  // Build the WOOP section (always present)
-  const woopSection = `WOOP DATA:
-${JSON.stringify({ language_to_echo: woopData.language_to_echo, woop: woopData.woop }, null, 2)}`;
-
-  // Build the analysis section (if available from 2-stage pipeline)
-  let analysisSection = '';
-  if (woopData.analysis && woopData.analysis.length > 0) {
-    analysisSection = `
-
-DEEP PSYCHOLOGICAL ANALYSIS (use this for richer personalization):
-This ABCD analysis reveals the user's deeper patterns, feelings, behaviors, beliefs, and desires for each value.
-${JSON.stringify(woopData.analysis, null, 2)}
-
-KEY INSIGHTS TO INCORPORATE:
-${woopData.analysis.map(a => `- ${a.value_name}: wound="${a.wound}" | lie="${a.cognition.lie}" | hungry_for="${a.desire.hungry_for}" | tell="${a.behavior.tell}"`).join('\n')}`;
-  }
-
-  return `${woopSection}${analysisSection}
+  return `WOOP DATA:
+${JSON.stringify({ language_to_echo: woopData.language_to_echo, woop: woopData.woop }, null, 2)}
 
 LANGUAGE TO ECHO (use these exact phrases):
 ${woopData.language_to_echo.map(l => `- "${l}"`).join('\n')}
@@ -418,7 +366,7 @@ STORY: "${story || 'No story provided.'}"
 
 VALUES: ${valueNames} (IDs: ${values.map((v) => v.id).join(', ')})
 
-Generate the Values Card. Use the ABCD analysis to create deeply personal definitions and commitments. Return valid JSON only.`;
+Generate the Values Card. Create deeply personal definitions and commitments based on the WOOP data. Return valid JSON only.`;
 }
 
 function generateFallback(values: ValueInput[]): ValuesCardResponse {
@@ -463,9 +411,10 @@ export async function POST(request: Request) {
       });
     }
 
-    // Call Anthropic API
-    const response = await client.messages.create({
-      model: 'claude-sonnet-4-5-20250929',
+    // Call Anthropic API with streaming for Netlify timeout safety
+    console.log('[VALUES-CARD] Generating with Sonnet 4.5...');
+    const stream = await client.messages.stream({
+      model: 'claude-sonnet-4-5-20250514',
       max_tokens: 3000,
       temperature: 0.7,
       system: SYSTEM_PROMPT,
@@ -477,8 +426,9 @@ export async function POST(request: Request) {
       ],
     });
 
-    // Extract text content
+    const response = await stream.finalMessage();
     const content = response.content[0];
+    console.log('[VALUES-CARD] Generation complete');
     if (content.type !== 'text') {
       console.error('Non-text response from Claude');
       return NextResponse.json({
