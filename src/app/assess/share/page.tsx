@@ -32,6 +32,9 @@ export default function SharePage() {
     setShareSlug,
     setConsent,
     demographics,
+    sortedValues,
+    transcript,
+    consentResearch,
     reset,
     updateDefinition,
   } = useAssessmentStore();
@@ -94,6 +97,23 @@ export default function SharePage() {
 
       const data = await response.json();
       setShareSlug(data.slug);
+
+      // Save complete session data for research
+      await fetch('/api/sessions/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId,
+          consentResearch,
+          sortedValues,
+          rankedValues,
+          transcript,
+          definitions,
+        }),
+      }).catch((err) => {
+        // Log but don't fail - profile is the critical path
+        console.error('Session save error:', err);
+      });
     } catch (err) {
       console.error('Profile creation error:', err);
       setError('Could not create shareable profile');
