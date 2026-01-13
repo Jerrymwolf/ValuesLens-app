@@ -18,7 +18,6 @@ interface ValuesCard2026Props {
   format: CardFormat;
   contentLevel?: ContentLevel;
   displayName?: string;
-  forExport?: boolean;
 }
 
 const DIMENSIONS: Record<CardFormat, { width: number; height: number }> = {
@@ -26,18 +25,41 @@ const DIMENSIONS: Record<CardFormat, { width: number; height: number }> = {
   'business-card': { width: 1050, height: 600 },
 };
 
-// Font sizes based on format and content level for optimal card fill
+// Font sizes scale proportionally to card width
+// Base sizes are for 1500px (index card), business card scales at 0.7
 function getSizesForCard(
   format: CardFormat,
   contentLevel: ContentLevel
-): { title: number; value: number; tagline: number; commitment: number; rank: number } {
-  const isBusinessCard = format === 'business-card';
-  const scale = isBusinessCard ? 0.7 : 1;
+): { title: number; value: number; tagline: number; commitment: number; rank: number; displayName: number } {
+  const { width } = DIMENSIONS[format];
+  const scale = width / 1500;
 
+  // Larger base sizes to fill the card better
   const baseSizes = {
-    'values-only': { title: 42, value: 48, tagline: 0, commitment: 0, rank: 40 },
-    'taglines': { title: 32, value: 36, tagline: 20, commitment: 0, rank: 28 },
-    'commitments': { title: 26, value: 26, tagline: 15, commitment: 13, rank: 20 },
+    'values-only': {
+      title: 52,
+      value: 64,
+      tagline: 0,
+      commitment: 0,
+      rank: 56,
+      displayName: 44,
+    },
+    'taglines': {
+      title: 44,
+      value: 48,
+      tagline: 28,
+      commitment: 0,
+      rank: 40,
+      displayName: 36,
+    },
+    'commitments': {
+      title: 36,
+      value: 40,
+      tagline: 20,
+      commitment: 18,
+      rank: 32,
+      displayName: 28,
+    },
   };
 
   const base = baseSizes[contentLevel];
@@ -47,29 +69,39 @@ function getSizesForCard(
     tagline: Math.round(base.tagline * scale),
     commitment: Math.round(base.commitment * scale),
     rank: Math.round(base.rank * scale),
+    displayName: Math.round(base.displayName * scale),
   };
 }
 
 const ValuesCard2026 = forwardRef<HTMLDivElement, ValuesCard2026Props>(
-  ({ values, format, contentLevel = 'taglines', displayName, forExport = false }, ref) => {
+  ({ values, format, contentLevel = 'taglines', displayName }, ref) => {
     const { width, height } = DIMENSIONS[format];
-    const aspectRatio = width / height;
 
     const showTaglines = contentLevel === 'taglines' || contentLevel === 'commitments';
     const showCommitments = contentLevel === 'commitments';
 
     const sizes = getSizesForCard(format, contentLevel);
-    const gradientBarWidth = format === 'business-card' ? 16 : 24;
+
+    // Proportional sizing based on card dimensions
+    const gradientBarWidth = Math.round(24 * (width / 1500));
+    const contentPadding = Math.round(32 * (width / 1500));
+    const verticalPaddingTop = Math.round(28 * (height / 900));
+    const verticalPaddingBottom = Math.round(24 * (height / 900));
+    const columnGap = Math.round(24 * (width / 1500));
+    const titleMarginBottom = Math.round(16 * (height / 900));
+    const valueNameMarginBottom = Math.round(8 * (height / 900));
+    const taglineMarginBottom = Math.round(8 * (height / 900));
+    const footerPaddingTop = Math.round(16 * (height / 900));
+    const dividerMargin = Math.round(12 * (height / 900));
+    const footerFontSize = Math.round(16 * (width / 1500));
 
     return (
       <div
         ref={ref}
         className="relative overflow-hidden bg-white"
         style={{
-          width: forExport ? `${width}px` : '100%',
-          height: forExport ? `${height}px` : 'auto',
-          aspectRatio: forExport ? undefined : aspectRatio,
-          maxWidth: forExport ? undefined : '500px',
+          width: `${width}px`,
+          height: `${height}px`,
         }}
       >
         {/* Left Prism Gradient Bar */}
@@ -94,18 +126,18 @@ const ValuesCard2026 = forwardRef<HTMLDivElement, ValuesCard2026Props>(
         <div
           className="relative h-full flex flex-col"
           style={{
-            paddingLeft: `${gradientBarWidth + 24}px`,
-            paddingRight: `${gradientBarWidth + 24}px`,
-            paddingTop: format === 'business-card' ? '16px' : '24px',
-            paddingBottom: format === 'business-card' ? '12px' : '20px',
+            paddingLeft: `${gradientBarWidth + contentPadding}px`,
+            paddingRight: `${gradientBarWidth + contentPadding}px`,
+            paddingTop: `${verticalPaddingTop}px`,
+            paddingBottom: `${verticalPaddingBottom}px`,
           }}
         >
           {/* Title Section */}
-          <div className="text-center flex-shrink-0" style={{ marginBottom: format === 'business-card' ? '8px' : '12px' }}>
+          <div className="text-center flex-shrink-0" style={{ marginBottom: `${titleMarginBottom}px` }}>
             {displayName && (
               <p
-                className="font-semibold text-prism-purple break-words"
-                style={{ fontSize: `${Math.round(sizes.value * 0.7)}px`, marginBottom: '2px' }}
+                className="font-semibold text-prism-purple"
+                style={{ fontSize: `${sizes.displayName}px`, marginBottom: `${Math.round(4 * (height / 900))}px` }}
               >
                 {displayName}
               </p>
@@ -116,22 +148,28 @@ const ValuesCard2026 = forwardRef<HTMLDivElement, ValuesCard2026Props>(
             >
               MY VALUES FOR 2026
             </h1>
-            <div className="w-full h-px bg-gray-200" style={{ marginTop: format === 'business-card' ? '6px' : '10px' }} />
+            <div
+              className="w-full bg-gray-200"
+              style={{
+                height: `${Math.max(1, Math.round(1.5 * (height / 900)))}px`,
+                marginTop: `${dividerMargin}px`
+              }}
+            />
           </div>
 
           {/* Values Container - Horizontal 3-column layout */}
-          <div className="flex-1 flex flex-row" style={{ gap: format === 'business-card' ? '12px' : '20px' }}>
+          <div className="flex-1 flex flex-row" style={{ gap: `${columnGap}px` }}>
             {values.slice(0, 3).map((item, index) => (
               <div
                 key={item.id}
-                className="flex-1 flex flex-col overflow-hidden"
+                className="flex-1 flex flex-col"
                 style={{
-                  borderRight: index < 2 ? '1px solid #e5e7eb' : 'none',
-                  paddingRight: index < 2 ? (format === 'business-card' ? '12px' : '20px') : '0',
+                  borderRight: index < 2 ? `${Math.max(1, Math.round(1 * (width / 1500)))}px solid #e5e7eb` : 'none',
+                  paddingRight: index < 2 ? `${columnGap}px` : '0',
                 }}
               >
                 {/* Rank + Name */}
-                <div className="flex items-center gap-1 min-w-0" style={{ marginBottom: format === 'business-card' ? '4px' : '6px' }}>
+                <div className="flex items-center" style={{ gap: `${Math.round(6 * (width / 1500))}px`, marginBottom: `${valueNameMarginBottom}px` }}>
                   <span
                     className="font-bold text-prism-coral flex-shrink-0"
                     style={{ fontSize: `${sizes.rank}px` }}
@@ -139,38 +177,34 @@ const ValuesCard2026 = forwardRef<HTMLDivElement, ValuesCard2026Props>(
                     {index === 0 ? '①' : index === 1 ? '②' : '③'}
                   </span>
                   <span
-                    className="font-bold text-brand-900 uppercase tracking-wide truncate"
-                    style={{ fontSize: `${sizes.value}px` }}
+                    className="font-bold text-brand-900 uppercase tracking-wide"
+                    style={{ fontSize: `${sizes.value}px`, lineHeight: 1.1 }}
                   >
                     {item.name}
                   </span>
                 </div>
 
-                {/* Tagline */}
+                {/* Tagline - No truncation, let it flow */}
                 {showTaglines && item.tagline && (
                   <p
-                    className="text-gray-600 italic leading-snug overflow-hidden"
+                    className="text-gray-600 italic leading-snug"
                     style={{
                       fontSize: `${sizes.tagline}px`,
-                      marginBottom: showCommitments ? (format === 'business-card' ? '4px' : '6px') : '0',
-                      display: '-webkit-box',
-                      WebkitLineClamp: 3,
-                      WebkitBoxOrient: 'vertical',
+                      marginBottom: showCommitments ? `${taglineMarginBottom}px` : '0',
+                      lineHeight: 1.3,
                     }}
                   >
                     {item.tagline}
                   </p>
                 )}
 
-                {/* 2026 Commitment */}
+                {/* 2026 Commitment - No truncation, let it flow */}
                 {showCommitments && item.commitment && (
                   <p
-                    className="text-prism-purple font-medium overflow-hidden"
+                    className="text-prism-purple font-medium"
                     style={{
                       fontSize: `${sizes.commitment}px`,
-                      display: '-webkit-box',
-                      WebkitLineClamp: 4,
-                      WebkitBoxOrient: 'vertical',
+                      lineHeight: 1.35,
                     }}
                   >
                     {item.commitment}
@@ -181,11 +215,17 @@ const ValuesCard2026 = forwardRef<HTMLDivElement, ValuesCard2026Props>(
           </div>
 
           {/* Footer */}
-          <div className="text-center flex-shrink-0" style={{ marginTop: 'auto', paddingTop: format === 'business-card' ? '8px' : '12px' }}>
-            <div className="w-full h-px bg-gray-200" style={{ marginBottom: format === 'business-card' ? '4px' : '8px' }} />
+          <div className="text-center flex-shrink-0" style={{ marginTop: 'auto', paddingTop: `${footerPaddingTop}px` }}>
+            <div
+              className="w-full bg-gray-200"
+              style={{
+                height: `${Math.max(1, Math.round(1.5 * (height / 900)))}px`,
+                marginBottom: `${Math.round(10 * (height / 900))}px`
+              }}
+            />
             <span
               className="text-gray-500 font-medium tracking-wide"
-              style={{ fontSize: format === 'business-card' ? '10px' : '14px' }}
+              style={{ fontSize: `${footerFontSize}px` }}
             >
               valueslensapp.netlify.app
             </span>
