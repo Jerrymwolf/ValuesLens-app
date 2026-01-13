@@ -1,9 +1,10 @@
 import { toPng, toBlob } from 'html-to-image';
 
-type CardFormat = 'story';
+type CardFormat = 'index-card' | 'business-card';
 
 const DIMENSIONS: Record<CardFormat, { width: number; height: number }> = {
-  story: { width: 1080, height: 1920 },
+  'index-card': { width: 1500, height: 900 },
+  'business-card': { width: 1050, height: 600 },
 };
 
 interface GenerateOptions {
@@ -86,7 +87,8 @@ export async function downloadCard(
   valueName: string
 ): Promise<void> {
   const blob = await generateCardBlob(element, format);
-  const filename = `${valueName.toLowerCase().replace(/\s+/g, '-')}-values-${format}.png`;
+  const formatName = format === 'index-card' ? 'index-card' : 'business-card';
+  const filename = `${valueName.toLowerCase().replace(/\s+/g, '-')}-values-${formatName}.png`;
   downloadBlob(blob, filename);
 }
 

@@ -18,8 +18,13 @@ const CONTENT_LEVELS: { id: ContentLevel; label: string }[] = [
   { id: 'commitments', label: '+ Commitments' },
 ];
 
+const CARD_FORMATS: { id: CardFormat; label: string }[] = [
+  { id: 'index-card', label: 'Index Card (3×5)' },
+  { id: 'business-card', label: 'Business Card' },
+];
+
 export default function ShareInterface2026({ values, shareUrl, onUpdateValue }: ShareInterface2026Props) {
-  const format: CardFormat = 'story';
+  const [format, setFormat] = useState<CardFormat>('index-card');
   const [contentLevel, setContentLevel] = useState<ContentLevel>('commitments');
   const [showName, setShowName] = useState(false);
   const [displayName, setDisplayName] = useState('');
@@ -115,6 +120,23 @@ export default function ShareInterface2026({ values, shareUrl, onUpdateValue }: 
     <div className="w-full">
       {/* Card Customization */}
       <div className="space-y-4 mb-6">
+        {/* Card size selector */}
+        <div className="flex gap-2">
+          {CARD_FORMATS.map((cardFormat) => (
+            <button
+              key={cardFormat.id}
+              onClick={() => setFormat(cardFormat.id)}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                format === cardFormat.id
+                  ? 'bg-prism-purple text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {cardFormat.label}
+            </button>
+          ))}
+        </div>
+
         {/* Name toggle */}
         <div className="flex items-center gap-3">
           <button
@@ -164,7 +186,8 @@ export default function ShareInterface2026({ values, shareUrl, onUpdateValue }: 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.2 }}
-          className="shadow-2xl rounded-2xl overflow-hidden"
+          className="shadow-2xl rounded-2xl overflow-hidden w-full"
+          style={{ maxWidth: '500px' }}
         >
           <ValuesCard2026
             ref={cardRef}

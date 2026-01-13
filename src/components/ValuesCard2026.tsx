@@ -10,7 +10,7 @@ interface ValueWithDefinition {
   commitment?: string;
 }
 
-type CardFormat = 'story';
+type CardFormat = 'index-card' | 'business-card';
 type ContentLevel = 'values-only' | 'taglines' | 'commitments';
 
 interface ValuesCard2026Props {
@@ -22,57 +22,31 @@ interface ValuesCard2026Props {
 }
 
 const DIMENSIONS: Record<CardFormat, { width: number; height: number }> = {
-  story: { width: 1080, height: 1920 },
+  'index-card': { width: 1500, height: 900 },
+  'business-card': { width: 1050, height: 600 },
 };
 
-// Font sizes based on content density
-function getSizes(contentLevel: ContentLevel, displayName?: string, values?: ValueWithDefinition[]) {
-  // Calculate total character count for density
-  const totalChars = (values?.slice(0, 3) || []).reduce((sum, v) => {
-    let chars = v.name.length;
-    if (contentLevel === 'taglines' || contentLevel === 'commitments') {
-      chars += (v.tagline?.length || 0);
-    }
-    if (contentLevel === 'commitments') {
-      chars += (v.commitment?.length || 0);
-    }
-    return sum + chars;
-  }, 0) + (displayName?.length || 0);
+// Font sizes based on format and content level for optimal card fill
+function getSizesForCard(
+  format: CardFormat,
+  contentLevel: ContentLevel
+): { title: number; value: number; tagline: number; commitment: number; rank: number } {
+  const isBusinessCard = format === 'business-card';
+  const scale = isBusinessCard ? 0.7 : 1;
 
-  // Story format has plenty of room - use generous sizes
-  if (contentLevel === 'values-only' || totalChars < 200) {
-    return {
-      titleSize: 'text-2xl',
-      valueTitleSize: 'text-xl',
-      taglineSize: 'text-base',
-      commitmentSize: 'text-base',
-      rankSize: 'text-xl',
-    };
-  }
-  if (totalChars < 350) {
-    return {
-      titleSize: 'text-xl',
-      valueTitleSize: 'text-lg',
-      taglineSize: 'text-sm',
-      commitmentSize: 'text-sm',
-      rankSize: 'text-lg',
-    };
-  }
-  if (totalChars < 500) {
-    return {
-      titleSize: 'text-lg',
-      valueTitleSize: 'text-base',
-      taglineSize: 'text-sm',
-      commitmentSize: 'text-sm',
-      rankSize: 'text-base',
-    };
-  }
+  const baseSizes = {
+    'values-only': { title: 42, value: 48, tagline: 0, commitment: 0, rank: 40 },
+    'taglines': { title: 32, value: 36, tagline: 20, commitment: 0, rank: 28 },
+    'commitments': { title: 26, value: 26, tagline: 15, commitment: 13, rank: 20 },
+  };
+
+  const base = baseSizes[contentLevel];
   return {
-    titleSize: 'text-base',
-    valueTitleSize: 'text-sm',
-    taglineSize: 'text-xs',
-    commitmentSize: 'text-xs',
-    rankSize: 'text-sm',
+    title: Math.round(base.title * scale),
+    value: Math.round(base.value * scale),
+    tagline: Math.round(base.tagline * scale),
+    commitment: Math.round(base.commitment * scale),
+    rank: Math.round(base.rank * scale),
   };
 }
 
@@ -84,7 +58,8 @@ const ValuesCard2026 = forwardRef<HTMLDivElement, ValuesCard2026Props>(
     const showTaglines = contentLevel === 'taglines' || contentLevel === 'commitments';
     const showCommitments = contentLevel === 'commitments';
 
-    const sizes = getSizes(contentLevel, displayName, values);
+    const sizes = getSizesForCard(format, contentLevel);
+    const gradientBarWidth = format === 'business-card' ? 16 : 24;
 
     return (
       <div
@@ -94,86 +69,128 @@ const ValuesCard2026 = forwardRef<HTMLDivElement, ValuesCard2026Props>(
           width: forExport ? `${width}px` : '100%',
           height: forExport ? `${height}px` : 'auto',
           aspectRatio: forExport ? undefined : aspectRatio,
-          maxWidth: forExport ? undefined : '360px',
+          maxWidth: forExport ? undefined : '500px',
         }}
       >
-        {/* Top Prism Gradient Bar */}
+        {/* Left Prism Gradient Bar */}
         <div
-          className="absolute top-0 left-0 right-0 h-16"
-          style={{ background: 'linear-gradient(90deg, #8B5CF6, #F97316, #EC4899)' }}
+          className="absolute top-0 left-0 bottom-0"
+          style={{
+            width: `${gradientBarWidth}px`,
+            background: 'linear-gradient(180deg, #8B5CF6, #F97316, #EC4899)',
+          }}
+        />
+
+        {/* Right Prism Gradient Bar */}
+        <div
+          className="absolute top-0 right-0 bottom-0"
+          style={{
+            width: `${gradientBarWidth}px`,
+            background: 'linear-gradient(180deg, #8B5CF6, #F97316, #EC4899)',
+          }}
         />
 
         {/* Content Container */}
         <div
-          className="relative h-full flex flex-col p-8"
-          style={{ paddingTop: '80px' }}
+          className="relative h-full flex flex-col"
+          style={{
+            paddingLeft: `${gradientBarWidth + 24}px`,
+            paddingRight: `${gradientBarWidth + 24}px`,
+            paddingTop: format === 'business-card' ? '16px' : '24px',
+            paddingBottom: format === 'business-card' ? '12px' : '20px',
+          }}
         >
           {/* Title Section */}
-          <div className="text-center mb-3 flex-shrink-0">
+          <div className="text-center flex-shrink-0" style={{ marginBottom: format === 'business-card' ? '8px' : '12px' }}>
             {displayName && (
-              <p className={`${sizes.valueTitleSize} font-semibold text-prism-purple mb-1 break-words`}>
+              <p
+                className="font-semibold text-prism-purple break-words"
+                style={{ fontSize: `${Math.round(sizes.value * 0.7)}px`, marginBottom: '2px' }}
+              >
                 {displayName}
               </p>
             )}
-            <h1 className={`${sizes.titleSize} font-bold text-brand-900 tracking-wide`}>
-              {displayName ? 'MY VALUES FOR 2026' : 'THREE VALUES I\'M LIVING'}
+            <h1
+              className="font-bold text-brand-900 tracking-wide"
+              style={{ fontSize: `${sizes.title}px` }}
+            >
+              MY VALUES FOR 2026
             </h1>
-            {!displayName && (
-              <h2 className={`${sizes.titleSize} font-bold text-brand-900 tracking-wide`}>
-                BY IN 2026
-              </h2>
-            )}
-            <div className="w-full h-px bg-gray-200 mt-3" />
+            <div className="w-full h-px bg-gray-200" style={{ marginTop: format === 'business-card' ? '6px' : '10px' }} />
           </div>
 
-          {/* Values Container */}
-          <div className="flex-1 flex flex-col gap-4">
+          {/* Values Container - Horizontal 3-column layout */}
+          <div className="flex-1 flex flex-row" style={{ gap: format === 'business-card' ? '12px' : '20px' }}>
             {values.slice(0, 3).map((item, index) => (
-              <div key={item.id} className="overflow-hidden">
+              <div
+                key={item.id}
+                className="flex-1 flex flex-col overflow-hidden"
+                style={{
+                  borderRight: index < 2 ? '1px solid #e5e7eb' : 'none',
+                  paddingRight: index < 2 ? (format === 'business-card' ? '12px' : '20px') : '0',
+                }}
+              >
                 {/* Rank + Name */}
-                <div className="flex items-center gap-2 mb-1 min-w-0">
-                  <span className={`${sizes.rankSize} font-bold text-prism-coral flex-shrink-0`}>
+                <div className="flex items-center gap-1 min-w-0" style={{ marginBottom: format === 'business-card' ? '4px' : '6px' }}>
+                  <span
+                    className="font-bold text-prism-coral flex-shrink-0"
+                    style={{ fontSize: `${sizes.rank}px` }}
+                  >
                     {index === 0 ? '①' : index === 1 ? '②' : '③'}
                   </span>
-                  <span className={`${sizes.valueTitleSize} font-bold text-brand-900 uppercase tracking-wide`}>
+                  <span
+                    className="font-bold text-brand-900 uppercase tracking-wide truncate"
+                    style={{ fontSize: `${sizes.value}px` }}
+                  >
                     {item.name}
                   </span>
                 </div>
 
                 {/* Tagline */}
                 {showTaglines && item.tagline && (
-                  <p className={`${sizes.taglineSize} text-gray-600 italic leading-snug mb-1`}>
+                  <p
+                    className="text-gray-600 italic leading-snug overflow-hidden"
+                    style={{
+                      fontSize: `${sizes.tagline}px`,
+                      marginBottom: showCommitments ? (format === 'business-card' ? '4px' : '6px') : '0',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 3,
+                      WebkitBoxOrient: 'vertical',
+                    }}
+                  >
                     {item.tagline}
                   </p>
                 )}
 
                 {/* 2026 Commitment */}
                 {showCommitments && item.commitment && (
-                  <p className={`${sizes.commitmentSize} text-prism-purple font-medium`}>
+                  <p
+                    className="text-prism-purple font-medium overflow-hidden"
+                    style={{
+                      fontSize: `${sizes.commitment}px`,
+                      display: '-webkit-box',
+                      WebkitLineClamp: 4,
+                      WebkitBoxOrient: 'vertical',
+                    }}
+                  >
                     {item.commitment}
                   </p>
-                )}
-
-                {/* Divider (not on last item) */}
-                {index < 2 && (
-                  <div className="w-full h-px bg-gray-100 mt-2" />
                 )}
               </div>
             ))}
           </div>
 
           {/* Footer */}
-          <div className="text-center flex-shrink-0 mt-auto mb-16">
-            <div className="w-full h-px bg-gray-200 mb-3" />
-            <span className="text-sm text-gray-500 font-medium tracking-wide">valueslensapp.netlify.app</span>
+          <div className="text-center flex-shrink-0" style={{ marginTop: 'auto', paddingTop: format === 'business-card' ? '8px' : '12px' }}>
+            <div className="w-full h-px bg-gray-200" style={{ marginBottom: format === 'business-card' ? '4px' : '8px' }} />
+            <span
+              className="text-gray-500 font-medium tracking-wide"
+              style={{ fontSize: format === 'business-card' ? '10px' : '14px' }}
+            >
+              valueslensapp.netlify.app
+            </span>
           </div>
         </div>
-
-        {/* Bottom Prism Gradient Bar */}
-        <div
-          className="absolute bottom-0 left-0 right-0 h-12"
-          style={{ background: 'linear-gradient(90deg, #8B5CF6, #F97316, #EC4899)' }}
-        />
       </div>
     );
   }
