@@ -281,7 +281,7 @@ export default function GoalsPage() {
       {/* VOOP explanation */}
       <div className="bg-prism-subtle rounded-xl p-4 mb-6 border border-prism-purple/20">
         <p className="text-sm text-gray-700">
-          <span className="font-semibold text-prism-purple">VOOP</span> (Values, Obstacle, Outcome, Plan)
+          <span className="font-semibold text-prism-purple">VOOP</span> (Values, Outcomes, Obstacles, Plan)
           adapts the WOOP method to focus on values-driven goal setting. For each value,
           identify what might stop you and plan how you&apos;ll respond.
         </p>
