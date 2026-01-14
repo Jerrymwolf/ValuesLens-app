@@ -239,7 +239,7 @@ export default function ShareInterface2026({ values, shareUrl, onUpdateValue }: 
 
       {/* Manually Edit Card - Collapsible */}
       {onUpdateValue && (
-        <div className="mb-6">
+        <div className="mt-4 mb-6">
           <AnimatePresence mode="wait">
             {!editingValue && !showEditMode && (
               <motion.button

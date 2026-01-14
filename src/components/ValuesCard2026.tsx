@@ -41,11 +41,11 @@ function getSizes(width: number, contentLevel: ContentLevel) {
   const config = {
     'values-only': {
       title:       { pct: 0.035, min: 14 },  // 52px@1500, 14px min
-      value:       { pct: 0.060, min: 18 },  // 90px@1500, 18px min
-      rank:        { pct: 0.050, min: 16 },  // 75px@1500, 16px min
+      value:       { pct: 0.032, min: 14 },  // 48px@1500, 14px min (was 90px)
+      rank:        { pct: 0.032, min: 12 },  // 48px@1500, 12px min (was 75px)
       tagline:     { pct: 0, min: 0 },
       commitment:  { pct: 0, min: 0 },
-      displayName: { pct: 0.030, min: 12 },  // 45px@1500, 12px min
+      displayName: { pct: 0.026, min: 12 },  // 39px@1500, 12px min (was 45px)
     },
     'taglines': {
       title:       { pct: 0.030, min: 13 },  // 45px@1500, 13px min
@@ -199,8 +199,8 @@ const ValuesCard2026 = forwardRef<HTMLDivElement, ValuesCard2026Props>(
                     {index === 0 ? '①' : index === 1 ? '②' : '③'}
                   </span>
                   <span
-                    className="font-bold text-brand-900 uppercase tracking-wide"
-                    style={{ fontSize: `${sizes.value}px`, lineHeight: 1.1 }}
+                    className="font-bold text-brand-900 uppercase tracking-wide break-words"
+                    style={{ fontSize: `${sizes.value}px`, lineHeight: 1.1, wordBreak: 'break-word' }}
                   >
                     {item.name}
                   </span>
