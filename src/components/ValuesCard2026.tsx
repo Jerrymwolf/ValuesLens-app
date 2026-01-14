@@ -18,89 +18,91 @@ interface ValuesCard2026Props {
   format: CardFormat;
   contentLevel?: ContentLevel;
   displayName?: string;
+  containerWidth: number; // Key prop - determines all sizing
 }
 
+// Export dimensions for use in ShareInterface (for hidden export card)
 const DIMENSIONS: Record<CardFormat, { width: number; height: number }> = {
   'index-card': { width: 1500, height: 900 },
   'business-card': { width: 1050, height: 600 },
 };
 
-// Font sizes scale proportionally to card width
-// Base sizes are for 1500px (index card), business card scales at 0.7
-function getSizesForCard(
-  format: CardFormat,
-  contentLevel: ContentLevel
-): { title: number; value: number; tagline: number; commitment: number; rank: number; displayName: number } {
-  const { width } = DIMENSIONS[format];
-  const scale = width / 1500;
+// Aspect ratios for calculating height from width
+const ASPECT_RATIOS: Record<CardFormat, number> = {
+  'index-card': 1500 / 900,     // 1.667
+  'business-card': 1050 / 600,  // 1.75
+};
 
-  // Larger base sizes to fill the card better
-  const baseSizes = {
+// ALL sizes as percentages of containerWidth
+// Tuned to FILL the card optimally at each content level
+function getSizes(width: number, contentLevel: ContentLevel) {
+  const percentages = {
     'values-only': {
-      title: 52,
-      value: 64,
+      title: 0.035,        // 52.5px at 1500w, 12.25px at 350w
+      value: 0.060,        // 90px at 1500w, 21px at 350w
+      rank: 0.050,         // 75px at 1500w, 17.5px at 350w
       tagline: 0,
       commitment: 0,
-      rank: 56,
-      displayName: 44,
+      displayName: 0.030,  // 45px at 1500w
     },
     'taglines': {
-      title: 44,
-      value: 48,
-      tagline: 28,
+      title: 0.030,        // 45px at 1500w
+      value: 0.045,        // 67.5px at 1500w
+      rank: 0.038,         // 57px at 1500w
+      tagline: 0.022,      // 33px at 1500w
       commitment: 0,
-      rank: 40,
-      displayName: 36,
+      displayName: 0.024,  // 36px at 1500w
     },
     'commitments': {
-      title: 36,
-      value: 40,
-      tagline: 20,
-      commitment: 18,
-      rank: 32,
-      displayName: 28,
+      title: 0.026,        // 39px at 1500w
+      value: 0.035,        // 52.5px at 1500w
+      rank: 0.028,         // 42px at 1500w
+      tagline: 0.017,      // 25.5px at 1500w
+      commitment: 0.016,   // 24px at 1500w
+      displayName: 0.019,  // 28.5px at 1500w
     },
   };
 
-  const base = baseSizes[contentLevel];
+  const p = percentages[contentLevel];
   return {
-    title: Math.round(base.title * scale),
-    value: Math.round(base.value * scale),
-    tagline: Math.round(base.tagline * scale),
-    commitment: Math.round(base.commitment * scale),
-    rank: Math.round(base.rank * scale),
-    displayName: Math.round(base.displayName * scale),
+    // Font sizes
+    title: width * p.title,
+    value: width * p.value,
+    rank: width * p.rank,
+    tagline: width * p.tagline,
+    commitment: width * p.commitment,
+    displayName: width * p.displayName,
+    // Spacing (also percentage-based)
+    gradientBar: width * 0.016,      // 24px at 1500w
+    padding: width * 0.032,          // 48px at 1500w
+    columnGap: width * 0.016,        // 24px at 1500w
+    titleMargin: width * 0.012,      // 18px at 1500w
+    valueNameMargin: width * 0.006,  // 9px at 1500w
+    taglineMargin: width * 0.006,    // 9px at 1500w
+    footerPadding: width * 0.012,    // 18px at 1500w
+    dividerMargin: width * 0.008,    // 12px at 1500w
+    footer: width * 0.011,           // 16.5px at 1500w
   };
 }
 
 const ValuesCard2026 = forwardRef<HTMLDivElement, ValuesCard2026Props>(
-  ({ values, format, contentLevel = 'taglines', displayName }, ref) => {
-    const { width, height } = DIMENSIONS[format];
+  ({ values, format, contentLevel = 'taglines', displayName, containerWidth }, ref) => {
+    // Calculate height from containerWidth and aspect ratio
+    const aspectRatio = ASPECT_RATIOS[format];
+    const height = containerWidth / aspectRatio;
 
     const showTaglines = contentLevel === 'taglines' || contentLevel === 'commitments';
     const showCommitments = contentLevel === 'commitments';
 
-    const sizes = getSizesForCard(format, contentLevel);
-
-    // Proportional sizing based on card dimensions
-    const gradientBarWidth = Math.round(24 * (width / 1500));
-    const contentPadding = Math.round(32 * (width / 1500));
-    const verticalPaddingTop = Math.round(28 * (height / 900));
-    const verticalPaddingBottom = Math.round(24 * (height / 900));
-    const columnGap = Math.round(24 * (width / 1500));
-    const titleMarginBottom = Math.round(16 * (height / 900));
-    const valueNameMarginBottom = Math.round(8 * (height / 900));
-    const taglineMarginBottom = Math.round(8 * (height / 900));
-    const footerPaddingTop = Math.round(16 * (height / 900));
-    const dividerMargin = Math.round(12 * (height / 900));
-    const footerFontSize = Math.round(16 * (width / 1500));
+    // All sizes calculated from containerWidth using percentages
+    const sizes = getSizes(containerWidth, contentLevel);
 
     return (
       <div
         ref={ref}
         className="relative overflow-hidden bg-white"
         style={{
-          width: `${width}px`,
+          width: `${containerWidth}px`,
           height: `${height}px`,
         }}
       >
@@ -108,7 +110,7 @@ const ValuesCard2026 = forwardRef<HTMLDivElement, ValuesCard2026Props>(
         <div
           className="absolute top-0 left-0 bottom-0"
           style={{
-            width: `${gradientBarWidth}px`,
+            width: `${sizes.gradientBar}px`,
             background: 'linear-gradient(180deg, #8B5CF6, #F97316, #EC4899)',
           }}
         />
@@ -117,7 +119,7 @@ const ValuesCard2026 = forwardRef<HTMLDivElement, ValuesCard2026Props>(
         <div
           className="absolute top-0 right-0 bottom-0"
           style={{
-            width: `${gradientBarWidth}px`,
+            width: `${sizes.gradientBar}px`,
             background: 'linear-gradient(180deg, #8B5CF6, #F97316, #EC4899)',
           }}
         />
@@ -126,18 +128,18 @@ const ValuesCard2026 = forwardRef<HTMLDivElement, ValuesCard2026Props>(
         <div
           className="relative h-full flex flex-col"
           style={{
-            paddingLeft: `${gradientBarWidth + contentPadding}px`,
-            paddingRight: `${gradientBarWidth + contentPadding}px`,
-            paddingTop: `${verticalPaddingTop}px`,
-            paddingBottom: `${verticalPaddingBottom}px`,
+            paddingLeft: `${sizes.gradientBar + sizes.padding}px`,
+            paddingRight: `${sizes.gradientBar + sizes.padding}px`,
+            paddingTop: `${sizes.padding * 0.6}px`,
+            paddingBottom: `${sizes.padding * 0.5}px`,
           }}
         >
           {/* Title Section */}
-          <div className="text-center flex-shrink-0" style={{ marginBottom: `${titleMarginBottom}px` }}>
+          <div className="text-center flex-shrink-0" style={{ marginBottom: `${sizes.titleMargin}px` }}>
             {displayName && (
               <p
                 className="font-semibold text-prism-purple"
-                style={{ fontSize: `${sizes.displayName}px`, marginBottom: `${Math.round(4 * (height / 900))}px` }}
+                style={{ fontSize: `${sizes.displayName}px`, marginBottom: `${containerWidth * 0.003}px` }}
               >
                 {displayName}
               </p>
@@ -151,25 +153,25 @@ const ValuesCard2026 = forwardRef<HTMLDivElement, ValuesCard2026Props>(
             <div
               className="w-full bg-gray-200"
               style={{
-                height: `${Math.max(1, Math.round(1.5 * (height / 900)))}px`,
-                marginTop: `${dividerMargin}px`
+                height: `${Math.max(1, containerWidth * 0.001)}px`,
+                marginTop: `${sizes.dividerMargin}px`
               }}
             />
           </div>
 
           {/* Values Container - Horizontal 3-column layout */}
-          <div className="flex-1 flex flex-row" style={{ gap: `${columnGap}px` }}>
+          <div className="flex-1 flex flex-row" style={{ gap: `${sizes.columnGap}px` }}>
             {values.slice(0, 3).map((item, index) => (
               <div
                 key={item.id}
                 className="flex-1 flex flex-col"
                 style={{
-                  borderRight: index < 2 ? `${Math.max(1, Math.round(1 * (width / 1500)))}px solid #e5e7eb` : 'none',
-                  paddingRight: index < 2 ? `${columnGap}px` : '0',
+                  borderRight: index < 2 ? `${Math.max(1, containerWidth * 0.0007)}px solid #e5e7eb` : 'none',
+                  paddingRight: index < 2 ? `${sizes.columnGap}px` : '0',
                 }}
               >
                 {/* Rank + Name */}
-                <div className="flex items-center" style={{ gap: `${Math.round(6 * (width / 1500))}px`, marginBottom: `${valueNameMarginBottom}px` }}>
+                <div className="flex items-center" style={{ gap: `${containerWidth * 0.004}px`, marginBottom: `${sizes.valueNameMargin}px` }}>
                   <span
                     className="font-bold text-prism-coral flex-shrink-0"
                     style={{ fontSize: `${sizes.rank}px` }}
@@ -190,7 +192,7 @@ const ValuesCard2026 = forwardRef<HTMLDivElement, ValuesCard2026Props>(
                     className="text-gray-600 italic leading-snug"
                     style={{
                       fontSize: `${sizes.tagline}px`,
-                      marginBottom: showCommitments ? `${taglineMarginBottom}px` : '0',
+                      marginBottom: showCommitments ? `${sizes.taglineMargin}px` : '0',
                       lineHeight: 1.3,
                     }}
                   >
@@ -215,17 +217,17 @@ const ValuesCard2026 = forwardRef<HTMLDivElement, ValuesCard2026Props>(
           </div>
 
           {/* Footer */}
-          <div className="text-center flex-shrink-0" style={{ marginTop: 'auto', paddingTop: `${footerPaddingTop}px` }}>
+          <div className="text-center flex-shrink-0" style={{ marginTop: 'auto', paddingTop: `${sizes.footerPadding}px` }}>
             <div
               className="w-full bg-gray-200"
               style={{
-                height: `${Math.max(1, Math.round(1.5 * (height / 900)))}px`,
-                marginBottom: `${Math.round(10 * (height / 900))}px`
+                height: `${Math.max(1, containerWidth * 0.001)}px`,
+                marginBottom: `${containerWidth * 0.007}px`
               }}
             />
             <span
               className="text-gray-500 font-medium tracking-wide"
-              style={{ fontSize: `${footerFontSize}px` }}
+              style={{ fontSize: `${sizes.footer}px` }}
             >
               valueslensapp.netlify.app
             </span>
@@ -240,5 +242,5 @@ ValuesCard2026.displayName = 'ValuesCard2026';
 
 export default ValuesCard2026;
 
-export { DIMENSIONS };
+export { DIMENSIONS, ASPECT_RATIOS };
 export type { CardFormat, ValueWithDefinition, ContentLevel };

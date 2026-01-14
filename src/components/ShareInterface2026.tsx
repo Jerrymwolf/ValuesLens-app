@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Download, Link2, Share2, Check, User } from 'lucide-react';
 import ValuesCard2026, { DIMENSIONS, type CardFormat, type ValueWithDefinition, type ContentLevel } from './ValuesCard2026';
@@ -35,15 +35,29 @@ export default function ShareInterface2026({ values, shareUrl, onUpdateValue }: 
   const [isSharing, setIsSharing] = useState(false);
   const [copied, setCopied] = useState(false);
   const exportCardRef = useRef<HTMLDivElement>(null);
+  const previewContainerRef = useRef<HTMLDivElement>(null);
+  const [previewWidth, setPreviewWidth] = useState(350);
 
   // Edit state
   const [editingValue, setEditingValue] = useState<ValueWithDefinition | null>(null);
   const [editTagline, setEditTagline] = useState('');
   const [editCommitment, setEditCommitment] = useState('');
 
-  // Calculate preview scale - the card renders at actual dimensions, then we scale it down
-  const { width: cardWidth, height: cardHeight } = DIMENSIONS[format];
-  const previewScale = Math.min(1, PREVIEW_MAX_WIDTH / cardWidth);
+  // Measure preview container width using ResizeObserver
+  useEffect(() => {
+    if (!previewContainerRef.current) return;
+
+    const observer = new ResizeObserver((entries) => {
+      const width = entries[0].contentRect.width;
+      setPreviewWidth(Math.min(width, PREVIEW_MAX_WIDTH));
+    });
+
+    observer.observe(previewContainerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  // Export dimensions (exact pixels for print-ready output)
+  const exportWidth = DIMENSIONS[format].width;
 
   const startEditing = (value: ValueWithDefinition) => {
     setEditingValue(value);
@@ -185,35 +199,22 @@ export default function ShareInterface2026({ values, shareUrl, onUpdateValue }: 
         </div>
       </div>
 
-      {/* Card preview - Uses CSS transform to scale the actual-size card */}
-      <div className="flex justify-center mb-8">
+      {/* Card preview - Uses percentage-based sizing for consistent look at any size */}
+      <div ref={previewContainerRef} className="flex justify-center mb-8" style={{ maxWidth: PREVIEW_MAX_WIDTH, width: '100%', margin: '0 auto' }}>
         <motion.div
           key={`${format}-${contentLevel}-${showName}-${displayName}`}
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.2 }}
           className="shadow-2xl rounded-2xl overflow-hidden"
-          style={{
-            width: `${cardWidth * previewScale}px`,
-            height: `${cardHeight * previewScale}px`,
-          }}
         >
-          {/* Inner wrapper applies the transform scale */}
-          <div
-            style={{
-              transform: `scale(${previewScale})`,
-              transformOrigin: 'top left',
-              width: `${cardWidth}px`,
-              height: `${cardHeight}px`,
-            }}
-          >
-            <ValuesCard2026
-              values={values}
-              format={format}
-              contentLevel={contentLevel}
-              displayName={showName ? displayName : undefined}
-            />
-          </div>
+          <ValuesCard2026
+            values={values}
+            format={format}
+            contentLevel={contentLevel}
+            displayName={showName ? displayName : undefined}
+            containerWidth={previewWidth}
+          />
         </motion.div>
       </div>
 
@@ -322,7 +323,7 @@ export default function ShareInterface2026({ values, shareUrl, onUpdateValue }: 
         )}
       </AnimatePresence>
 
-      {/* Hidden export card - renders at exact export dimensions */}
+      {/* Hidden export card - renders at exact export dimensions (1500x900 or 1050x600) */}
       <div
         className="fixed top-0 left-0 opacity-0 pointer-events-none"
         style={{ zIndex: -1 }}
@@ -334,6 +335,7 @@ export default function ShareInterface2026({ values, shareUrl, onUpdateValue }: 
           format={format}
           contentLevel={contentLevel}
           displayName={showName ? displayName : undefined}
+          containerWidth={exportWidth}
         />
       </div>
 
