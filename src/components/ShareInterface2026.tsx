@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, Link2, Share2, Check, User, Loader2 } from 'lucide-react';
+import { Download, Link2, Share2, Check, User, Loader2, Pencil } from 'lucide-react';
 import ValuesCard2026, { DIMENSIONS, type CardFormat, type ValueWithDefinition, type ContentLevel } from './ValuesCard2026';
 import { downloadCard, shareCard, copyToClipboard } from '@/lib/utils/imageGeneration';
 
@@ -40,6 +40,7 @@ export default function ShareInterface2026({ values, shareUrl, onUpdateValue }: 
   const [previewWidth, setPreviewWidth] = useState(350);
 
   // Edit state
+  const [showEditMode, setShowEditMode] = useState(false);
   const [editingValue, setEditingValue] = useState<ValueWithDefinition | null>(null);
   const [editTagline, setEditTagline] = useState('');
   const [editCommitment, setEditCommitment] = useState('');
@@ -70,6 +71,7 @@ export default function ShareInterface2026({ values, shareUrl, onUpdateValue }: 
     setEditingValue(null);
     setEditTagline('');
     setEditCommitment('');
+    setShowEditMode(false); // Collapse back to button
   };
 
   const saveEditing = () => {
@@ -78,7 +80,10 @@ export default function ShareInterface2026({ values, shareUrl, onUpdateValue }: 
       tagline: editTagline,
       commitment: editCommitment,
     });
-    cancelEditing();
+    setEditingValue(null);
+    setEditTagline('');
+    setEditCommitment('');
+    setShowEditMode(false); // Collapse after save
   };
 
   const valueName = values[0]?.name || 'values';
@@ -232,110 +237,144 @@ export default function ShareInterface2026({ values, shareUrl, onUpdateValue }: 
         </p>
       </div>
 
-      {/* Edit values list */}
-      {onUpdateValue && !editingValue && (
-        <div className="mb-6 space-y-2">
-          <p className="text-xs text-gray-500 text-center mb-2">Tap a value to edit</p>
-          {values.map((value, index) => (
-            <button
-              key={value.id}
-              onClick={() => startEditing(value)}
-              className="w-full text-left p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors group"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-prism-coral font-bold">
-                    {index === 0 ? '①' : index === 1 ? '②' : '③'}
-                  </span>
-                  <span className="font-semibold text-brand-900 truncate">{value.name}</span>
+      {/* Manually Edit Card - Collapsible */}
+      {onUpdateValue && (
+        <div className="mb-6">
+          <AnimatePresence mode="wait">
+            {!editingValue && !showEditMode && (
+              <motion.button
+                key="edit-button"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowEditMode(true)}
+                aria-expanded={showEditMode}
+                aria-label="Open edit mode to modify values on the card"
+                className="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-full transition-all flex items-center justify-center gap-2"
+              >
+                <Pencil size={18} />
+                Manually Edit Card
+              </motion.button>
+            )}
+
+            {!editingValue && showEditMode && (
+              <motion.div
+                key="value-selector"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="space-y-2"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium text-gray-700">Select a value to edit</p>
+                  <button
+                    onClick={() => setShowEditMode(false)}
+                    className="text-sm text-gray-500 hover:text-gray-700 font-medium"
+                  >
+                    Cancel
+                  </button>
                 </div>
-                <span className="text-xs text-gray-400 group-hover:text-brand-600">Edit</span>
-              </div>
-              {value.tagline && (
-                <p className="text-sm text-gray-500 italic mt-1 truncate pl-6">{value.tagline}</p>
-              )}
-            </button>
-          ))}
+                {values.map((value, index) => (
+                  <button
+                    key={value.id}
+                    onClick={() => startEditing(value)}
+                    className="w-full text-left p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors group"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-prism-coral font-bold">
+                          {index === 0 ? '①' : index === 1 ? '②' : '③'}
+                        </span>
+                        <span className="font-semibold text-brand-900 truncate">{value.name}</span>
+                      </div>
+                      <span className="text-xs text-gray-400 group-hover:text-brand-600">Edit</span>
+                    </div>
+                    {value.tagline && (
+                      <p className="text-sm text-gray-500 italic mt-1 truncate pl-6">{value.tagline}</p>
+                    )}
+                  </button>
+                ))}
+              </motion.div>
+            )}
+
+            {editingValue && (
+              <motion.div
+                key="edit-panel"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                className="p-4 bg-white border border-gray-200 rounded-xl shadow-sm"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-brand-900">
+                    Edit {editingValue.name}
+                  </h3>
+                  <button
+                    onClick={cancelEditing}
+                    className="text-gray-400 hover:text-gray-600 text-xl leading-none"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                {/* Tagline input */}
+                <div className="mb-4">
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="text-sm font-medium text-gray-700">Tagline</label>
+                    <span className={`text-xs ${editTagline.length > 50 ? 'text-red-500' : 'text-gray-400'}`}>
+                      {editTagline.length}/50
+                    </span>
+                  </div>
+                  <input
+                    type="text"
+                    value={editTagline}
+                    onChange={(e) => setEditTagline(e.target.value)}
+                    placeholder="A punchy phrase (3-7 words)"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-prism-purple focus:border-transparent"
+                    maxLength={50}
+                  />
+                  <p className="text-xs text-gray-400 mt-1">e.g., &quot;My place is with the 400.&quot;</p>
+                </div>
+
+                {/* Commitment input */}
+                <div className="mb-4">
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="text-sm font-medium text-gray-700">Commitment</label>
+                    <span className={`text-xs ${editCommitment.length > 120 ? 'text-red-500' : 'text-gray-400'}`}>
+                      {editCommitment.length}/120
+                    </span>
+                  </div>
+                  <textarea
+                    value={editCommitment}
+                    onChange={(e) => setEditCommitment(e.target.value)}
+                    placeholder="When [trigger], I [action]. [Truth]."
+                    rows={2}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-prism-purple focus:border-transparent resize-none"
+                    maxLength={120}
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Two sentences max. Keep it punchy.</p>
+                </div>
+
+                {/* Action buttons */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={saveEditing}
+                    className="flex-1 py-2 bg-brand-600 hover:bg-brand-700 text-white font-medium rounded-lg transition-colors"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={cancelEditing}
+                    className="px-4 py-2 text-gray-600 hover:text-gray-900 font-medium transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       )}
-
-      {/* Edit panel */}
-      <AnimatePresence>
-        {editingValue && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            className="mb-6 p-4 bg-white border border-gray-200 rounded-xl shadow-sm"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-brand-900">
-                Edit {editingValue.name}
-              </h3>
-              <button
-                onClick={cancelEditing}
-                className="text-gray-400 hover:text-gray-600 text-xl leading-none"
-              >
-                ×
-              </button>
-            </div>
-
-            {/* Tagline input */}
-            <div className="mb-4">
-              <div className="flex justify-between items-center mb-1">
-                <label className="text-sm font-medium text-gray-700">Tagline</label>
-                <span className={`text-xs ${editTagline.length > 50 ? 'text-red-500' : 'text-gray-400'}`}>
-                  {editTagline.length}/50
-                </span>
-              </div>
-              <input
-                type="text"
-                value={editTagline}
-                onChange={(e) => setEditTagline(e.target.value)}
-                placeholder="A punchy phrase (3-7 words)"
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-prism-purple focus:border-transparent"
-                maxLength={50}
-              />
-              <p className="text-xs text-gray-400 mt-1">e.g., &quot;My place is with the 400.&quot;</p>
-            </div>
-
-            {/* Commitment input */}
-            <div className="mb-4">
-              <div className="flex justify-between items-center mb-1">
-                <label className="text-sm font-medium text-gray-700">Commitment</label>
-                <span className={`text-xs ${editCommitment.length > 120 ? 'text-red-500' : 'text-gray-400'}`}>
-                  {editCommitment.length}/120
-                </span>
-              </div>
-              <textarea
-                value={editCommitment}
-                onChange={(e) => setEditCommitment(e.target.value)}
-                placeholder="When [trigger], I [action]. [Truth]."
-                rows={2}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-prism-purple focus:border-transparent resize-none"
-                maxLength={120}
-              />
-              <p className="text-xs text-gray-400 mt-1">Two sentences max. Keep it punchy.</p>
-            </div>
-
-            {/* Action buttons */}
-            <div className="flex gap-2">
-              <button
-                onClick={saveEditing}
-                className="flex-1 py-2 bg-brand-600 hover:bg-brand-700 text-white font-medium rounded-lg transition-colors"
-              >
-                Save
-              </button>
-              <button
-                onClick={cancelEditing}
-                className="px-4 py-2 text-gray-600 hover:text-gray-900 font-medium transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Hidden export card - renders at exact export dimensions (1500x900 or 1050x600) */}
       <div
