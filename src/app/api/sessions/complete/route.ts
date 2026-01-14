@@ -6,13 +6,29 @@ import { nanoid } from 'nanoid';
 interface ValueDefinition {
   tagline: string;
   definition?: string;
+  commitment?: string;
   behavioralAnchors?: string[];
+  weeklyQuestion?: string;
   userEdited: boolean;
+}
+
+interface VOOPData {
+  outcome: string;
+  obstacle: string;
+  plan: string;
+}
+
+interface Demographics {
+  ageRange?: string;
+  industry?: string;
+  leadershipRole?: boolean;
+  country?: string;
 }
 
 interface RequestBody {
   sessionId: string;
   consentResearch: boolean;
+  demographics?: Demographics;
   sortedValues: {
     very: string[];
     somewhat: string[];
@@ -21,6 +37,12 @@ interface RequestBody {
   rankedValues: string[];
   transcript?: string;
   definitions: Record<string, ValueDefinition>;
+  voop?: Record<string, VOOPData>;
+  goals?: Record<string, string>;
+  customValue?: {
+    id: string;
+    name: string;
+  };
 }
 
 export async function POST(request: Request) {
@@ -29,10 +51,13 @@ export async function POST(request: Request) {
     const {
       sessionId,
       consentResearch,
+      demographics,
       sortedValues,
       rankedValues,
       transcript,
       definitions: valueDefinitions,
+      voop,
+      goals,
     } = body;
 
     // Validate required fields
@@ -59,6 +84,7 @@ export async function POST(request: Request) {
         .set({
           completedAt: new Date(),
           consentResearch,
+          demographics: demographics || null,
         })
         .where(eq(sessions.id, sessionId));
       dbSessionId = sessionId;
@@ -67,9 +93,10 @@ export async function POST(request: Request) {
       const [newSession] = await db
         .insert(sessions)
         .values({
-          id: sessionId as `${string}-${string}-${string}-${string}-${string}`,
+          id: sessionId,
           completedAt: new Date(),
           consentResearch,
+          demographics: demographics || null,
         })
         .returning();
       dbSessionId = newSession.id;
@@ -116,10 +143,12 @@ export async function POST(request: Request) {
       await db.insert(rankings).values(rankingInserts);
     }
 
-    // Insert definitions for top 3
-    const top3Values = rankedValues.slice(0, 3);
-    const definitionInserts = top3Values.map((valueName, index) => {
+    // Insert definitions for all ranked values (up to 5)
+    const definitionInserts = rankedValues.map((valueName, index) => {
       const def = valueDefinitions[valueName];
+      const voopData = voop?.[valueName];
+      const goalText = goals?.[valueName];
+
       return {
         sessionId: dbSessionId,
         valueName,
@@ -129,8 +158,12 @@ export async function POST(request: Request) {
           ? {
               tagline: def.tagline,
               definition: def.definition || '',
+              commitment: def.commitment || goalText,
+              behavioralAnchors: def.behavioralAnchors,
+              weeklyQuestion: def.weeklyQuestion,
             }
           : null,
+        voop: voopData || null,
         userEdited: def?.userEdited || false,
       };
     });
@@ -147,6 +180,9 @@ export async function POST(request: Request) {
       .limit(1);
 
     let profileSlug: string;
+
+    // Profile only shows top 3 values
+    const top3Values = rankedValues.slice(0, 3);
 
     if (existingProfile.length > 0) {
       profileSlug = existingProfile[0].shareSlug!;

@@ -13,7 +13,7 @@ import {
 // Sessions Table
 // ==========================================
 export const sessions = pgTable('sessions', {
-  id: uuid('id').primaryKey().defaultRandom(),
+  id: text('id').primaryKey(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   completedAt: timestamp('completed_at', { withTimezone: true }),
   consentResearch: boolean('consent_research').default(false).notNull(),
@@ -30,7 +30,7 @@ export const sessions = pgTable('sessions', {
 // ==========================================
 export const sorts = pgTable('sorts', {
   id: uuid('id').primaryKey().defaultRandom(),
-  sessionId: uuid('session_id')
+  sessionId: text('session_id')
     .references(() => sessions.id, { onDelete: 'cascade' })
     .notNull(),
   valueName: text('value_name').notNull(),
@@ -43,7 +43,7 @@ export const sorts = pgTable('sorts', {
 // ==========================================
 export const rankings = pgTable('rankings', {
   id: uuid('id').primaryKey().defaultRandom(),
-  sessionId: uuid('session_id')
+  sessionId: text('session_id')
     .references(() => sessions.id, { onDelete: 'cascade' })
     .notNull(),
   valueName: text('value_name').notNull(),
@@ -55,7 +55,7 @@ export const rankings = pgTable('rankings', {
 // ==========================================
 export const definitions = pgTable('definitions', {
   id: uuid('id').primaryKey().defaultRandom(),
-  sessionId: uuid('session_id')
+  sessionId: text('session_id')
     .references(() => sessions.id, { onDelete: 'cascade' })
     .notNull(),
   valueName: text('value_name').notNull(),
@@ -64,6 +64,14 @@ export const definitions = pgTable('definitions', {
   refinedDefinition: jsonb('refined_definition').$type<{
     tagline: string;
     definition: string;
+    commitment?: string;
+    behavioralAnchors?: string[];
+    weeklyQuestion?: string;
+  }>(),
+  voop: jsonb('voop').$type<{
+    outcome: string;
+    obstacle: string;
+    plan: string;
   }>(),
   userEdited: boolean('user_edited').default(false).notNull(),
 });

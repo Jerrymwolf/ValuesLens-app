@@ -37,6 +37,7 @@ export default function SharePage() {
     consentResearch,
     reset,
     updateDefinition,
+    voop,
   } = useAssessmentStore();
 
   const [isCreatingProfile, setIsCreatingProfile] = useState(false);
@@ -105,11 +106,20 @@ export default function SharePage() {
         body: JSON.stringify({
           sessionId,
           consentResearch,
+          demographics,
           sortedValues,
           rankedValues,
           transcript,
           definitions,
+          voop,
+          goals,
+          customValue,
         }),
+      }).then(async (res) => {
+        if (!res.ok) {
+          const errorText = await res.text();
+          console.error('Session save failed:', res.status, errorText);
+        }
       }).catch((err) => {
         // Log but don't fail - profile is the critical path
         console.error('Session save error:', err);
@@ -168,9 +178,20 @@ export default function SharePage() {
     router.push('/');
   };
 
-  const handleDemographicsSubmit = (data: Demographics) => {
+  const handleDemographicsSubmit = async (data: Demographics) => {
     setConsent(true, data);
     setShowDemographics(false);
+
+    // Update session with demographics (submitted after initial save)
+    if (sessionId) {
+      await fetch('/api/sessions/demographics', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, demographics: data }),
+      }).catch((err) => {
+        console.error('Demographics save error:', err);
+      });
+    }
   };
 
   const handleDemographicsSkip = () => {
