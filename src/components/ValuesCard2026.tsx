@@ -33,55 +33,75 @@ const ASPECT_RATIOS: Record<CardFormat, number> = {
   'business-card': 1050 / 600,  // 1.75
 };
 
-// ALL sizes as percentages of containerWidth
-// Tuned to FILL the card optimally at each content level
+// Hybrid sizing: percentage-based with minimum floors for readability
+// At small widths (preview), minimums ensure readable text
+// At large widths (export), percentages fill the card optimally
 function getSizes(width: number, contentLevel: ContentLevel) {
-  const percentages = {
+  // Font size config: { pct: percentage of width, min: minimum pixels }
+  const config = {
     'values-only': {
-      title: 0.035,        // 52.5px at 1500w, 12.25px at 350w
-      value: 0.060,        // 90px at 1500w, 21px at 350w
-      rank: 0.050,         // 75px at 1500w, 17.5px at 350w
-      tagline: 0,
-      commitment: 0,
-      displayName: 0.030,  // 45px at 1500w
+      title:       { pct: 0.035, min: 14 },  // 52px@1500, 14px min
+      value:       { pct: 0.060, min: 18 },  // 90px@1500, 18px min
+      rank:        { pct: 0.050, min: 16 },  // 75px@1500, 16px min
+      tagline:     { pct: 0, min: 0 },
+      commitment:  { pct: 0, min: 0 },
+      displayName: { pct: 0.030, min: 12 },  // 45px@1500, 12px min
     },
     'taglines': {
-      title: 0.030,        // 45px at 1500w
-      value: 0.045,        // 67.5px at 1500w
-      rank: 0.038,         // 57px at 1500w
-      tagline: 0.022,      // 33px at 1500w
-      commitment: 0,
-      displayName: 0.024,  // 36px at 1500w
+      title:       { pct: 0.030, min: 13 },  // 45px@1500, 13px min
+      value:       { pct: 0.045, min: 16 },  // 68px@1500, 16px min
+      rank:        { pct: 0.038, min: 14 },  // 57px@1500, 14px min
+      tagline:     { pct: 0.022, min: 12 },  // 33px@1500, 12px min
+      commitment:  { pct: 0, min: 0 },
+      displayName: { pct: 0.024, min: 12 },  // 36px@1500, 12px min
     },
     'commitments': {
-      title: 0.026,        // 39px at 1500w
-      value: 0.035,        // 52.5px at 1500w
-      rank: 0.028,         // 42px at 1500w
-      tagline: 0.017,      // 25.5px at 1500w
-      commitment: 0.016,   // 24px at 1500w
-      displayName: 0.019,  // 28.5px at 1500w
+      title:       { pct: 0.026, min: 12 },  // 39px@1500, 12px min
+      value:       { pct: 0.035, min: 14 },  // 52px@1500, 14px min
+      rank:        { pct: 0.028, min: 12 },  // 42px@1500, 12px min
+      tagline:     { pct: 0.017, min: 12 },  // 26px@1500, 12px min
+      commitment:  { pct: 0.016, min: 12 },  // 24px@1500, 12px min
+      displayName: { pct: 0.019, min: 12 },  // 28px@1500, 12px min
     },
   };
 
-  const p = percentages[contentLevel];
+  // Spacing config (also with minimums)
+  const spacing = {
+    gradientBar:     { pct: 0.016, min: 4 },   // 24px@1500, 4px min
+    padding:         { pct: 0.032, min: 10 },  // 48px@1500, 10px min
+    columnGap:       { pct: 0.016, min: 6 },   // 24px@1500, 6px min
+    titleMargin:     { pct: 0.012, min: 4 },   // 18px@1500
+    valueNameMargin: { pct: 0.006, min: 3 },   // 9px@1500
+    taglineMargin:   { pct: 0.006, min: 3 },   // 9px@1500
+    footerPadding:   { pct: 0.012, min: 4 },   // 18px@1500
+    dividerMargin:   { pct: 0.008, min: 3 },   // 12px@1500
+    footer:          { pct: 0.011, min: 8 },   // 16px@1500
+  };
+
+  const c = config[contentLevel];
+
+  // Helper: apply percentage with minimum floor
+  const calc = (cfg: { pct: number; min: number }) =>
+    Math.max(width * cfg.pct, cfg.min);
+
   return {
     // Font sizes
-    title: width * p.title,
-    value: width * p.value,
-    rank: width * p.rank,
-    tagline: width * p.tagline,
-    commitment: width * p.commitment,
-    displayName: width * p.displayName,
-    // Spacing (also percentage-based)
-    gradientBar: width * 0.016,      // 24px at 1500w
-    padding: width * 0.032,          // 48px at 1500w
-    columnGap: width * 0.016,        // 24px at 1500w
-    titleMargin: width * 0.012,      // 18px at 1500w
-    valueNameMargin: width * 0.006,  // 9px at 1500w
-    taglineMargin: width * 0.006,    // 9px at 1500w
-    footerPadding: width * 0.012,    // 18px at 1500w
-    dividerMargin: width * 0.008,    // 12px at 1500w
-    footer: width * 0.011,           // 16.5px at 1500w
+    title: calc(c.title),
+    value: calc(c.value),
+    rank: calc(c.rank),
+    tagline: calc(c.tagline),
+    commitment: calc(c.commitment),
+    displayName: calc(c.displayName),
+    // Spacing
+    gradientBar: calc(spacing.gradientBar),
+    padding: calc(spacing.padding),
+    columnGap: calc(spacing.columnGap),
+    titleMargin: calc(spacing.titleMargin),
+    valueNameMargin: calc(spacing.valueNameMargin),
+    taglineMargin: calc(spacing.taglineMargin),
+    footerPadding: calc(spacing.footerPadding),
+    dividerMargin: calc(spacing.dividerMargin),
+    footer: calc(spacing.footer),
   };
 }
 

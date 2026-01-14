@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, Link2, Share2, Check, User } from 'lucide-react';
+import { Download, Link2, Share2, Check, User, Loader2 } from 'lucide-react';
 import ValuesCard2026, { DIMENSIONS, type CardFormat, type ValueWithDefinition, type ContentLevel } from './ValuesCard2026';
 import { downloadCard, shareCard, copyToClipboard } from '@/lib/utils/imageGeneration';
 
@@ -34,6 +34,7 @@ export default function ShareInterface2026({ values, shareUrl, onUpdateValue }: 
   const [isDownloading, setIsDownloading] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [downloadSuccess, setDownloadSuccess] = useState(false);
   const exportCardRef = useRef<HTMLDivElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const [previewWidth, setPreviewWidth] = useState(350);
@@ -86,12 +87,16 @@ export default function ShareInterface2026({ values, shareUrl, onUpdateValue }: 
     if (!exportCardRef.current) return;
 
     setIsDownloading(true);
+    setDownloadSuccess(false);
 
     // Small delay to ensure export card is rendered
     await new Promise(resolve => setTimeout(resolve, 100));
 
     try {
       await downloadCard(exportCardRef.current, format, valueName);
+      // Show success message with print tip
+      setDownloadSuccess(true);
+      setTimeout(() => setDownloadSuccess(false), 5000);
     } catch (error) {
       console.error('Download failed:', error);
     } finally {
@@ -141,11 +146,14 @@ export default function ShareInterface2026({ values, shareUrl, onUpdateValue }: 
       {/* Card Customization */}
       <div className="space-y-4 mb-6">
         {/* Card size selector */}
-        <div className="flex gap-2">
+        <div className="flex gap-2" role="radiogroup" aria-label="Card format">
           {CARD_FORMATS.map((cardFormat) => (
             <button
               key={cardFormat.id}
               onClick={() => setFormat(cardFormat.id)}
+              role="radio"
+              aria-checked={format === cardFormat.id}
+              aria-label={cardFormat.id === 'index-card' ? 'Index Card, 5 by 3 inches' : 'Business Card, 3.5 by 2 inches'}
               className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
                 format === cardFormat.id
                   ? 'bg-prism-purple text-white'
@@ -182,11 +190,13 @@ export default function ShareInterface2026({ values, shareUrl, onUpdateValue }: 
         </div>
 
         {/* Content level selector */}
-        <div className="flex gap-2">
+        <div className="flex gap-2" role="radiogroup" aria-label="Content to show on card">
           {CONTENT_LEVELS.map((level) => (
             <button
               key={level.id}
               onClick={() => setContentLevel(level.id)}
+              role="radio"
+              aria-checked={contentLevel === level.id}
               className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
                 contentLevel === level.id
                   ? 'bg-brand-600 text-white'
@@ -199,8 +209,8 @@ export default function ShareInterface2026({ values, shareUrl, onUpdateValue }: 
         </div>
       </div>
 
-      {/* Card preview - Uses percentage-based sizing for consistent look at any size */}
-      <div ref={previewContainerRef} className="flex justify-center mb-8" style={{ maxWidth: PREVIEW_MAX_WIDTH, width: '100%', margin: '0 auto' }}>
+      {/* Card preview - Uses hybrid sizing (percentage + minimums) for readable preview */}
+      <div ref={previewContainerRef} className="flex flex-col items-center mb-6" style={{ maxWidth: PREVIEW_MAX_WIDTH, width: '100%', margin: '0 auto' }}>
         <motion.div
           key={`${format}-${contentLevel}-${showName}-${displayName}`}
           initial={{ opacity: 0, scale: 0.95 }}
@@ -216,6 +226,10 @@ export default function ShareInterface2026({ values, shareUrl, onUpdateValue }: 
             containerWidth={previewWidth}
           />
         </motion.div>
+        {/* Preview disclaimer */}
+        <p className="text-center text-xs text-gray-400 mt-3">
+          Preview optimized for screen · Download for full print quality
+        </p>
       </div>
 
       {/* Edit values list */}
@@ -341,15 +355,46 @@ export default function ShareInterface2026({ values, shareUrl, onUpdateValue }: 
 
       {/* Action buttons */}
       <div className="space-y-3">
-        {/* Download button */}
+        {/* Download button with dimensions */}
         <button
           onClick={handleDownload}
           disabled={isDownloading}
+          aria-label={`Download ${format === 'index-card' ? 'index card' : 'business card'} as PNG image, ${format === 'index-card' ? '1500 by 900' : '1050 by 600'} pixels`}
+          aria-busy={isDownloading}
           className="w-full py-3.5 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
-          <Download size={20} />
-          {isDownloading ? 'Generating...' : 'Download Image'}
+          {isDownloading ? (
+            <>
+              <Loader2 size={20} className="animate-spin" />
+              <span>Generating...</span>
+            </>
+          ) : (
+            <>
+              <Download size={20} />
+              <span>Download Image</span>
+              <span className="text-xs opacity-70 ml-1">
+                {format === 'index-card' ? '1500×900' : '1050×600'}
+              </span>
+            </>
+          )}
         </button>
+
+        {/* Success message with print tip */}
+        <AnimatePresence>
+          {downloadSuccess && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="flex items-center justify-center gap-2 py-2 px-4 bg-green-50 text-green-700 rounded-lg text-sm"
+            >
+              <Check size={16} className="text-green-600" />
+              <span>
+                Card downloaded! Print at 100% scale for exact {format === 'index-card' ? '5×3"' : '3.5×2"'} size.
+              </span>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Share button (mobile) */}
         {'share' in navigator && (
